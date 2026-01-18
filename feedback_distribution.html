@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Feedback Distribution Chart</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React and ReactDOM (Stable 18.2.0) -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX parsing -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Dependencies for Recharts -->
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <!-- Recharts (Stable 2.12.7) -->
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f8fafc;
+        overflow-x: hidden;
+      }
+      .recharts-default-legend {
+        padding-top: 20px !important;
+      }
+      /* Ensure the root container takes full height if needed */
+      #root {
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      // Use a defensive approach to access Recharts globals
+      const App = () => {
+        // Check if Recharts is available
+        if (typeof Recharts === "undefined") {
+          return (
+            <div className="flex items-center justify-center h-screen bg-slate-50">
+              <div className="text-center p-8 bg-white shadow-lg rounded-lg border border-red-100">
+                <h2 className="text-red-600 font-bold text-xl mb-2">
+                  Visualization Error
+                </h2>
+                <p className="text-slate-600">
+                  The charting library failed to load. Please check your
+                  internet connection and refresh the page.
+                </p>
+              </div>
+            </div>
+          );
+        }
+
+        const {
+          BarChart,
+          Bar,
+          XAxis,
+          YAxis,
+          CartesianGrid,
+          Tooltip,
+          Legend,
+          ResponsiveContainer,
+        } = Recharts;
+
+        const data = [
+          {
+            month: "Oct '25",
+            "Defect/Bug": 52,
+            "Feature Request": 21,
+            Usability: 18,
+            Performance: 11,
+            Configuration: 9,
+            Flakiness: 6,
+            "Learning/Doc": 5,
+          },
+          {
+            month: "Nov '25",
+            "Defect/Bug": 59,
+            "Feature Request": 27,
+            Usability: 11,
+            Performance: 9,
+            Configuration: 11,
+            Flakiness: 8,
+            "Learning/Doc": 7,
+          },
+        ];
+
+        const categoryConfig = [
+          { key: "Defect/Bug", color: "#ef4444" },
+          { key: "Feature Request", color: "#3b82f6" },
+          { key: "Usability", color: "#10b981" },
+          { key: "Performance", color: "#f59e0b" },
+          { key: "Configuration", color: "#8b5cf6" },
+          { key: "Flakiness", color: "#ec4899" },
+          { key: "Learning/Doc", color: "#64748b" },
+        ];
+
+        const totals = React.useMemo(() => {
+          const octTotal = Object.values(data[0]).reduce(
+            (acc, val) => (typeof val === "number" ? acc + val : acc),
+            0
+          );
+          const novTotal = Object.values(data[1]).reduce(
+            (acc, val) => (typeof val === "number" ? acc + val : acc),
+            0
+          );
+          const diff = novTotal - octTotal;
+          const percentChange = ((diff / octTotal) * 100).toFixed(1);
+          return { octTotal, novTotal, diff, percentChange };
+        }, []);
+
+        const CustomTooltip = ({ active, payload, label }) => {
+          if (active && payload && payload.length) {
+            const total = payload.reduce((sum, entry) => sum + entry.value, 0);
+            return (
+              <div className="bg-white p-4 border border-slate-200 shadow-xl rounded-lg">
+                <p className="font-bold text-slate-800 mb-2 border-b border-slate-100 pb-1">
+                  {label}
+                </p>
+                <div className="space-y-1">
+                  {payload.map((entry, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center gap-4 text-sm"
+                    >
+                      <span className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="text-slate-600">{entry.name}:</span>
+                      </span>
+                      <span className="font-mono font-semibold text-slate-800">
+                        {entry.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-100 flex justify-between font-bold text-slate-900">
+                  <span>Total:</span>
+                  <span>{total}</span>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        };
+
+        return (
+          <div className="p-4 md:p-8 font-sans max-w-6xl mx-auto space-y-6">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-blue-600 mb-1">
+                  <i data-lucide="bar-chart-3" className="w-5 h-5"></i>
+                  <span className="font-semibold tracking-wide uppercase text-xs">
+                    Analytics Report
+                  </span>
+                </div>
+                <h1 className="text-3xl font-extrabold text-slate-900">
+                  Feedback Category Distribution
+                </h1>
+                <p className="text-slate-500 mt-1 italic">
+                  Comparison of actionable feedback volumes for Q4 2025
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+                  <p className="text-xs text-slate-400 font-medium uppercase">
+                    Oct Total
+                  </p>
+                  <p className="text-xl font-bold text-slate-800">
+                    {totals.octTotal}
+                  </p>
+                </div>
+                <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
+                  <p className="text-xs text-slate-400 font-medium uppercase">
+                    Nov Total
+                  </p>
+                  <p className="text-xl font-bold text-slate-800">
+                    {totals.novTotal}
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-start">
+              <i
+                data-lucide="info"
+                className="text-blue-500 shrink-0 mt-0.5 w-5 h-5"
+              ></i>
+              <div>
+                <h3 className="font-semibold text-blue-900">Volume Insight</h3>
+                <p className="text-sm text-blue-800 leading-relaxed">
+                  Overall feedback volume increased by{" "}
+                  <span className="font-bold">
+                    {totals.diff} units ({totals.percentChange}%)
+                  </span>{" "}
+                  month-over-month. Most growth:{" "}
+                  <span className="font-bold text-red-600">Defect/Bug</span> &{" "}
+                  <span className="font-bold text-blue-600">
+                    Feature Request
+                  </span>
+                  .
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-[500px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data}
+                  margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f1f5f9"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontWeight: 600 }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8" }}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ fill: "#f8fafc" }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={72}
+                    iconType="circle"
+                  />
+                  {categoryConfig.map((cat) => (
+                    <Bar
+                      key={cat.key}
+                      dataKey={cat.key}
+                      stackId="a"
+                      fill={cat.color}
+                      barSize={80}
+                    />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.map((monthData, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm"
+                >
+                  <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                    <span className="font-bold text-slate-700">
+                      {monthData.month} Detailed Breakdown
+                    </span>
+                    <span className="bg-white px-2 py-0.5 rounded text-xs font-mono border border-slate-200">
+                      n=
+                      {Object.values(monthData).reduce(
+                        (a, b) => (typeof b === "number" ? a + b : a),
+                        0
+                      )}
+                    </span>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {categoryConfig.map((cat) => (
+                      <div
+                        key={cat.key}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="text-slate-600 font-medium">
+                          {cat.key}
+                        </span>
+                        <div className="flex items-center gap-3 flex-1 px-8">
+                          <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                backgroundColor: cat.color,
+                                width: `${(monthData[cat.key] / 70) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <span className="font-mono text-slate-900 w-6 text-right font-semibold">
+                          {monthData[cat.key]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      // Standard React 18 initialization
+      const rootElement = document.getElementById("root");
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(<App />);
+
+      // Initialize Lucide icons after initial render
+      setTimeout(() => {
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+      }, 100);
+    </script>
+  </body>
+</html>
