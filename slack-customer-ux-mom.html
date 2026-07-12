@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slack — Customer/UX Threads</title>
+<style>
+  :root{--page:#f4f4f1;--card:#ffffff;--surface:#ffffff;--primary:#0b0b0b;--secondary:#52514e;--muted:#898781;
+    --grid:#e1e0d9;--baseline:#c3c2b7;--border:rgba(11,11,11,0.10);--accent:#2a78d6;--chip:#f0efec;
+    --shadow:0 1px 2px rgba(11,11,11,.05),0 4px 14px rgba(11,11,11,.04);}
+  body.dark{--page:#0d0d0d;--card:#1a1a19;--surface:#1a1a19;--primary:#ffffff;--secondary:#c3c2b7;--muted:#898781;
+    --grid:#2c2c2a;--baseline:#383835;--border:rgba(255,255,255,0.10);--accent:#3987e5;--chip:#242422;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);}
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{background:var(--page);color:var(--primary);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.45;transition:background .2s,color .2s}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 18px 44px}
+  h1{font-size:19px;margin:0 0 3px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:12.5px;color:var(--secondary);margin:0 0 14px;max-width:760px}
+  .bar{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;margin-bottom:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .lab{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .seg{display:inline-flex;flex-wrap:wrap;background:var(--chip);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px}
+  .seg button{border:0;background:transparent;color:var(--secondary);font:inherit;font-size:12.5px;font-weight:600;
+    padding:7px 13px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:all .15s}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--primary);box-shadow:var(--shadow)}
+  select.sel{font:inherit;font-size:13px;font-weight:600;color:var(--primary);background:var(--surface);
+    border:1px solid var(--border);border-radius:9px;padding:8px 12px;cursor:pointer;min-width:110px}
+  .push{margin-left:auto;display:flex;gap:8px;align-self:flex-end}
+  .ghost{border:1px solid var(--border);background:var(--surface);color:var(--secondary);font:inherit;font-size:12.5px;
+    font-weight:600;padding:8px 12px;border-radius:9px;cursor:pointer}
+  .ghost[aria-pressed="true"]{color:var(--primary);border-color:var(--accent)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px 12px;box-shadow:var(--shadow)}
+  .card h2{font-size:15px;margin:0 0 2px;font-weight:700;letter-spacing:-.01em}
+  .badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 7px;border-radius:6px;background:var(--chip);color:var(--muted);border:1px solid var(--border);vertical-align:middle;margin-left:8px}
+  .cap{font-size:12.5px;color:var(--secondary);margin:2px 0 12px}
+  .cap b{color:var(--primary)} .win{color:var(--muted);font-weight:600}
+  #chart{width:100%;height:430px}
+  .tblwrap{margin-top:14px;overflow-x:auto}
+  table.data{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.data th,table.data td{padding:7px 12px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  table.data th:first-child,table.data td:first-child{text-align:left}
+  table.data thead th{color:var(--muted);font-weight:600;background:var(--chip)}
+  table.data tr.tot td{font-weight:700}
+  .hidden{display:none !important}
+  footer.note{margin-top:18px;font-size:11px;color:var(--muted);line-height:1.6} footer.note b{color:var(--secondary)}
+  #loaderr{padding:36px 6px;color:var(--secondary);font-size:14px}
+  @media (max-width:640px){ .push{margin-left:0;width:100%} #chart{height:410px} }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <h1>Slack — Customer / UX Threads</h1>
+  <p class="sub">Relevance-filtered customer &amp; UX threads from <strong>#help-automate</strong> and <strong>#help-appautomate</strong>. Pick a metric and a month — trend views show the chosen month + two prior; themes &amp; Jira are a June snapshot. Aggregate only — no message text or names.</p>
+  <div class="bar">
+    <div class="field"><span class="lab">Metric</span><div class="seg" id="metricSeg" role="group" aria-label="Metric"></div></div>
+    <div class="field"><span class="lab">Month (+ 2 prior)</span><select class="sel" id="monthSel" aria-label="Anchor month"></select></div>
+    <div class="field"><span class="lab">Product</span>
+      <div class="seg" id="prodSeg" role="group" aria-label="Product">
+        <button data-p="All" aria-pressed="true">Both</button>
+        <button data-p="Automate" aria-pressed="false">Automate</button>
+        <button data-p="App Automate" aria-pressed="false">App Automate</button>
+      </div>
+    </div>
+    <div class="push">
+      <button class="ghost" id="tableBtn" aria-pressed="false">▤ Table</button>
+      <button class="ghost" id="themeBtn">◐ Theme</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2 id="chTitle"></h2>
+    <p class="cap" id="chCap"></p>
+    <div id="chart"></div>
+    <div class="tblwrap hidden" id="tbl"></div>
+  </div>
+  <footer class="note" id="foot"></footer>
+</div>
+<script>
+const DATA={"months":["2026-03","2026-04","2026-05","2026-06"],"labels":{"2026-03":"Mar","2026-04":"Apr","2026-05":"May","2026-06":"Jun"},"products":["Automate","App Automate"],"relevance":["customer","both","ux"],"relLabel":{"customer":"Customer","both":"Feature (both)","ux":"Pure UX"},"cube":{"2026-03":{"Automate":{"roots":81,"rel":{"customer":76,"both":5,"ux":0}},"App Automate":{"roots":130,"rel":{"customer":108,"both":19,"ux":3}},"All":{"roots":211,"rel":{"customer":184,"both":24,"ux":3}}},"2026-04":{"Automate":{"roots":93,"rel":{"customer":89,"both":3,"ux":1}},"App Automate":{"roots":108,"rel":{"customer":89,"both":15,"ux":4}},"All":{"roots":201,"rel":{"customer":178,"both":18,"ux":5}}},"2026-05":{"Automate":{"roots":94,"rel":{"customer":77,"both":11,"ux":6}},"App Automate":{"roots":149,"rel":{"customer":115,"both":27,"ux":7}},"All":{"roots":243,"rel":{"customer":192,"both":38,"ux":13}}},"2026-06":{"Automate":{"roots":99,"rel":{"customer":94,"both":3,"ux":2}},"App Automate":{"roots":137,"rel":{"customer":111,"both":21,"ux":5}},"All":{"roots":236,"rel":{"customer":205,"both":24,"ux":7}}}},"themesMonth":"2026-06","themesJune":[{"name":"Session reliability & incidents","total":76,"automate":31,"appauto":45,"dir":"Defend"},{"name":"Framework, version & language support","total":33,"automate":19,"appauto":14,"dir":"Defend \u00b7 Grow"},{"name":"Device-capability depth","total":27,"automate":3,"appauto":24,"dir":"Grow"},{"name":"Dashboard, reporting & artifacts","total":27,"automate":11,"appauto":16,"dir":"TRA / convergence"},{"name":"Docs, integrations, onboarding & evals","total":22,"automate":13,"appauto":9,"dir":"Grow / activation"},{"name":"Account, upload, workspace & packaging","total":20,"automate":3,"appauto":17,"dir":"UX / activation \u00b7 Commercial"},{"name":"Networking, proxy & data-residency","total":19,"automate":11,"appauto":8,"dir":"Defend"},{"name":"Device & OS coverage","total":12,"automate":8,"appauto":4,"dir":"Defend \u00b7 Grow"}],"jiraJune":{"order":["Done","In Progress","To Do","Unresolved"],"counts":{"Done":11,"In Progress":4,"To Do":2,"Unresolved":2},"total":19,"asof":"2026-07-07"}};
+const MG=DATA.months, MLAB=DATA.labels, PRODS=DATA.products, REL=DATA.relevance, RLAB=DATA.relLabel;
+const METRICS=[
+  {id:'volume',label:'Volume & split',title:'Thread volume & product split',badge:'deterministic'},
+  {id:'themes',label:'Themes',title:'Themes + defend/grow lens',badge:'June snapshot · est.'},
+  {id:'jira',label:'Jira status',title:'Referenced-Jira status',badge:'June · live'},
+  {id:'relevance',label:'Relevance mix',title:'Relevance mix (customer / feature / UX)',badge:'deterministic'}
+];
+const DIRSHORT={"Defend":"Defend","Defend · Grow":"Defend/Grow","Grow":"Grow","TRA / convergence":"TRA",
+  "Grow / activation":"Grow/Act","UX / activation · Commercial":"UX/Comm"};
+const PAL={
+  light:{surface:'#ffffff',primary:'#0b0b0b',secondary:'#52514e',muted:'#898781',grid:'#e1e0d9',baseline:'#c3c2b7',accent:'#2a78d6',
+    product:['#2a78d6','#1baf7a'],rel:{customer:'#2a78d6',both:'#1baf7a',ux:'#eda100'},
+    jira:{'Done':'#0a7f0a','In Progress':'#eda100','To Do':'#8a8882','Unresolved':'#c0392b'}},
+  dark:{surface:'#1a1a19',primary:'#ffffff',secondary:'#c3c2b7',muted:'#898781',grid:'#2c2c2a',baseline:'#383835',accent:'#3987e5',
+    product:['#3987e5','#199e70'],rel:{customer:'#3987e5',both:'#199e70',ux:'#c98500'},
+    jira:{'Done':'#0ca30c','In Progress':'#c98500','To Do':'#9a9992','Unresolved':'#e06666'}}
+};
+const state={metric:'volume',anchor:MG[MG.length-1],product:'All',dark:false};
+let chart=null;
+const N=n=>n.toLocaleString('en-US');
+const P=()=>state.dark?PAL.dark:PAL.light;
+const B=(mk,prod)=>DATA.cube[mk][prod];
+const PB=mk=>DATA.cube[mk][state.product];
+function win(){const i=MG.indexOf(state.anchor);return MG.slice(Math.max(0,i-2),i+1);}
+function prevOf(mk){const i=MG.indexOf(mk);return i>0?MG[i-1]:null;}
+function tooltipBase(){const p=P();return {trigger:'axis',confine:true,
+  axisPointer:{type:'shadow',shadowStyle:{color:state.dark?'rgba(255,255,255,.05)':'rgba(11,11,11,.04)'}},
+  backgroundColor:p.surface,borderColor:'rgba(0,0,0,.08)',borderWidth:1,
+  extraCssText:'box-shadow:0 6px 20px rgba(0,0,0,.14);border-radius:10px;',textStyle:{color:p.primary,fontSize:12}};}
+function catAxis(data){const p=P();return {type:'category',data,axisLine:{lineStyle:{color:p.baseline}},axisTick:{show:false},
+  axisLabel:{color:p.secondary,fontSize:12.5,fontWeight:600}};}
+function valAxis(extra){const p=P();return Object.assign({type:'value',axisLine:{show:false},axisTick:{show:false},
+  splitLine:{lineStyle:{color:p.grid}},axisLabel:{color:p.muted,fontSize:11}},extra||{});}
+function legendBase(data,extra){const p=P();return Object.assign({data,top:0,right:0,icon:'roundRect',itemWidth:11,itemHeight:11,
+  itemGap:12,textStyle:{color:p.secondary,fontSize:11.5},type:'scroll'},extra||{});}
+function seg(){const p=P();return {borderColor:p.surface,borderWidth:2,borderRadius:2};}
+function totalSeries(totals,stackId){const p=P();return {name:'__total',type:'bar',stack:stackId,data:totals.map(()=>0),silent:true,
+  itemStyle:{color:'transparent',borderWidth:0},tooltip:{show:false},
+  label:{show:true,position:'top',distance:6,color:p.primary,fontWeight:700,fontSize:12,formatter:pm=>N(totals[pm.dataIndex])},z:5};}
+function gridB(top){return {left:6,right:14,top:top||34,bottom:6,containLabel:true};}
+
+function optVolume(w){
+  const p=P(),lab=w.map(k=>MLAB[k]),isAll=state.product==='All';
+  const prods=isAll?PRODS:[state.product];
+  const totals=w.map(k=>PB(k).roots);
+  const series=prods.map((pr,idx)=>({name:pr,type:'bar',stack:'v',barMaxWidth:90,
+    itemStyle:Object.assign({color:p.product[isAll?idx:PRODS.indexOf(pr)]},seg()),
+    label:{show:true,color:'#fff',fontSize:12,fontWeight:600,formatter:pm=>pm.value>6?N(pm.value):''},
+    data:w.map(k=>B(k,pr).roots)}));
+  series.push(totalSeries(totals,'v'));
+  return {backgroundColor:'transparent',animationDuration:450,grid:gridB(),legend:isAll?legendBase(prods):{show:false},
+    xAxis:catAxis(lab),yAxis:valAxis(),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{let s='<b>'+rows[0].axisValue+' 2026</b>',t=0;
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{t+=r.value;s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';});
+      if(isAll)s+='<br><span style="color:'+p.muted+'">Total: <b style="color:'+p.primary+'">'+N(t)+'</b></span>';return s;}}),series};
+}
+function optRelevance(w){
+  const p=P(),lab=w.map(k=>MLAB[k]);
+  const series=REL.map(rk=>({name:RLAB[rk],type:'bar',stack:'rl',barMaxWidth:90,
+    itemStyle:Object.assign({color:p.rel[rk]},seg()),
+    label:{show:true,color:'#fff',fontSize:11,fontWeight:600,formatter:pm=>pm.value>8?N(pm.value):''},
+    data:w.map(k=>PB(k).rel[rk])}));
+  series.push(totalSeries(w.map(k=>PB(k).roots),'rl'));
+  return {backgroundColor:'transparent',animationDuration:450,grid:gridB(),legend:legendBase(REL.map(rk=>RLAB[rk])),
+    xAxis:catAxis(lab),yAxis:valAxis(),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const b=PB(w[rows[0].dataIndex]);let s='<b>'+rows[0].axisValue+' 2026</b>';
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/b.roots*100)+'%)');return s;}}),series};
+}
+function optThemes(){
+  const p=P();const isAll=state.product==='All';
+  const key=state.product==='Automate'?'automate':(state.product==='App Automate'?'appauto':'total');
+  const th=DATA.themesJune.slice().sort((a,b)=>a[key]-b[key]);   // ascending -> largest on top
+  const names=th.map(t=>t.name);
+  function mk(pr,field,color){return {name:pr,type:'bar',stack:'th',barMaxWidth:18,
+    itemStyle:{color:color,borderColor:p.surface,borderWidth:1,borderRadius:2},
+    data:th.map(t=>t[field]),label:{show:false}};}
+  let series;
+  if(isAll){
+    series=[mk('Automate','automate',p.product[0]),mk('App Automate','appauto',p.product[1])];
+  } else {
+    series=[mk(state.product,key,p.product[state.product==='Automate'?0:1])];
+  }
+  // direction + total label at bar end (on the last/outer series)
+  const last=series[series.length-1];
+  last.label={show:true,position:'right',color:p.secondary,fontSize:10.5,formatter:pm=>{
+    const t=th[pm.dataIndex];return N(t[key])+'  ·  '+(DIRSHORT[t.dir]||t.dir);}};
+  return {backgroundColor:'transparent',animationDuration:450,grid:{left:6,right:120,top:30,bottom:4,containLabel:true},
+    legend:isAll?legendBase(PRODS):{show:false},
+    xAxis:valAxis(),
+    yAxis:Object.assign(catAxis(names),{axisLabel:{color:p.secondary,fontSize:11.5,fontWeight:600,width:230,overflow:'truncate'}}),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const i=rows[0].dataIndex;const t=th[i];
+      let s='<b>'+t.name+'</b><br><span style="color:'+p.muted+'">Direction: '+t.dir+'</span>';
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>');
+      s+='<br>Total: <b>'+N(t.total)+'</b>';return s;}}),series};
+}
+function optJira(){
+  const p=P(),j=DATA.jiraJune;
+  const data=j.order.map(k=>({value:j.counts[k],itemStyle:{color:p.jira[k],borderRadius:[3,3,0,0]}}));
+  return {backgroundColor:'transparent',animationDuration:450,grid:gridB(24),
+    xAxis:catAxis(j.order),yAxis:valAxis({maxInterval:2}),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const r=rows[0];
+      return '<b>'+r.axisValue+'</b>: <b>'+N(r.value)+'</b> of '+j.total+' ('+Math.round(r.value/j.total*100)+'%)';}}),
+    series:[{type:'bar',barMaxWidth:80,data:data,
+      label:{show:true,position:'top',color:p.primary,fontWeight:700,fontSize:13,formatter:pm=>N(pm.value)}}]};
+}
+const BUILD={volume:optVolume,relevance:optRelevance,themes:optThemes,jira:optJira};
+
+function caption(w){
+  const a=state.anchor,la=MLAB[a],b=PB(a),pv=prevOf(a),bp=pv?PB(pv):null;
+  const winTxt='<span class="win">Window: '+w.map(k=>MLAB[k]).join(' · ')+'</span>';
+  if(state.metric==='volume'){
+    const d=bp?' ('+(b.roots>=bp.roots?'+':'')+(((b.roots-bp.roots)/bp.roots)*100).toFixed(1)+'% vs '+MLAB[pv]+')':'';
+    return '<b>'+la+': '+N(b.roots)+' customer/UX threads'+d+'.</b> '+
+      (state.product==='All'?'Automate '+N(B(a,'Automate').roots)+' / App Automate '+N(B(a,'App Automate').roots)+'. ':'')+winTxt;
+  }
+  if(state.metric==='relevance'){
+    const b2=PB(a);
+    return '<b>'+la+': '+REL.map(rk=>N(b2.rel[rk])+' '+RLAB[rk].toLowerCase()).join(' · ')+'.</b> Share of '+N(b2.roots)+' threads. '+winTxt;
+  }
+  if(state.metric==='themes'){
+    const tot=DATA.themesJune.reduce((x,t)=>x+t.total,0);
+    const top=DATA.themesJune.slice().sort((a2,b2)=>b2.total-a2.total)[0];
+    return '<b>June snapshot · '+N(tot)+' threads across '+DATA.themesJune.length+' themes'+(state.product!=='All'?' ('+state.product+' slice)':'')+'.</b> '+
+      top.name+' leads ('+top.total+'). Bar-end tag = count · OKR direction. <em>Single-assignment; not trended month-over-month.</em>';
+  }
+  if(state.metric==='jira'){
+    const j=DATA.jiraJune;
+    return '<b>'+j.total+' Jira tickets referenced in June threads: '+j.counts['Done']+' Done ('+Math.round(j.counts['Done']/j.total*100)+'%), '+
+      j.counts['In Progress']+' In Progress, '+j.counts['To Do']+' To Do, '+j.counts['Unresolved']+' unresolved.</b> Live as of '+j.asof+'. <em>Combined (not product-split).</em>';
+  }
+}
+function renderTable(){
+  const w=win(),el=document.getElementById('tbl');
+  const head=m=>'<thead><tr><th>'+m+'</th>'+w.map(k=>'<th>'+MLAB[k]+'</th>').join('')+'</tr></thead>';
+  let rows=[],lbl='';
+  if(state.metric==='volume'){lbl='Series';
+    (state.product==='All'?PRODS:[state.product]).forEach(pr=>rows.push({l:pr,v:w.map(k=>B(k,pr).roots)}));
+    rows.push({l:'Total threads',v:w.map(k=>PB(k).roots),tot:1});
+    el.innerHTML='<table class="data">'+head(lbl)+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map(x=>'<td>'+N(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';return;}
+  if(state.metric==='relevance'){lbl='Relevance';REL.forEach(rk=>rows.push({l:RLAB[rk],v:w.map(k=>PB(k).rel[rk])}));
+    rows.push({l:'Total',v:w.map(k=>PB(k).roots),tot:1});
+    el.innerHTML='<table class="data">'+head(lbl)+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map(x=>'<td>'+N(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';return;}
+  if(state.metric==='themes'){
+    el.innerHTML='<table class="data"><thead><tr><th>Theme (June)</th><th>Automate</th><th>App Automate</th><th>Total</th><th style="text-align:left">Direction</th></tr></thead><tbody>'+
+      DATA.themesJune.slice().sort((a,b)=>b.total-a.total).map(t=>'<tr><td>'+t.name+'</td><td>'+t.automate+'</td><td>'+t.appauto+'</td><td>'+t.total+'</td><td style="text-align:left">'+t.dir+'</td></tr>').join('')+'</tbody></table>';return;}
+  const j=DATA.jiraJune;
+  el.innerHTML='<table class="data"><thead><tr><th>Jira status (June)</th><th>Tickets</th><th>Share</th></tr></thead><tbody>'+
+    j.order.map(k=>'<tr><td>'+k+'</td><td>'+j.counts[k]+'</td><td>'+Math.round(j.counts[k]/j.total*100)+'%</td></tr>').join('')+
+    '<tr class="tot"><td>Total referenced</td><td>'+j.total+'</td><td>100%</td></tr></tbody></table>';
+}
+function render(){
+  const w=win(),m=METRICS.find(x=>x.id===state.metric);
+  document.getElementById('chTitle').innerHTML=m.title+' <span class="badge">'+m.badge+'</span>';
+  document.getElementById('chCap').innerHTML=caption(w);
+  document.getElementById('chart').style.height=(state.metric==='themes'?470:430)+'px';
+  chart.resize();chart.setOption(BUILD[state.metric](w),true);
+  if(!document.getElementById('tbl').classList.contains('hidden'))renderTable();
+}
+function buildControls(){
+  const ms=document.getElementById('metricSeg');
+  ms.innerHTML=METRICS.map(m=>'<button data-m="'+m.id+'" aria-pressed="'+(m.id===state.metric)+'">'+m.label+'</button>').join('');
+  ms.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.metric=b.dataset.m;
+    [...ms.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
+  const sel=document.getElementById('monthSel');
+  sel.innerHTML=MG.slice().reverse().map(k=>'<option value="'+k+'"'+(k===state.anchor?' selected':'')+'>'+MLAB[k]+' 2026</option>').join('');
+  sel.addEventListener('change',e=>{state.anchor=e.target.value;render();});
+  const ps=document.getElementById('prodSeg');
+  ps.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.product=b.dataset.p;
+    [...ps.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
+  const tb=document.getElementById('tableBtn');
+  tb.addEventListener('click',()=>{const t=document.getElementById('tbl');const show=t.classList.contains('hidden');
+    t.classList.toggle('hidden',!show);tb.setAttribute('aria-pressed',show);if(show)renderTable();});
+  document.getElementById('themeBtn').addEventListener('click',()=>{state.dark=!state.dark;document.body.classList.toggle('dark',state.dark);render();});
+}
+function renderFoot(){document.getElementById('foot').innerHTML=
+  '<b>Source:</b> #help-automate + #help-appautomate, relevance-filtered customer/UX thread roots (BigQuery/Slack ingest), Mar–Jun 2026. '+
+  'Thread counts &amp; relevance mix are deterministic. Themes = <code>themes-v1</code> single-assignment estimate (June only, not trended). '+
+  'Jira status is live as of the fetch date. Aggregate only — no message text, customer names, or permalinks.';}
+function init(){
+  state.dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.body.classList.toggle('dark',state.dark);
+  chart=echarts.init(document.getElementById('chart'),null,{renderer:'svg'});
+  buildControls();renderFoot();render();
+  let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>chart.resize(),120);});
+}
+(function(){function go(){if(window.echarts)init();}
+  function add(src,onerr){const s=document.createElement('script');s.src=src;s.onload=go;s.onerror=onerr;document.head.appendChild(s);}
+  add('https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js',function(){
+    add('https://unpkg.com/echarts@5.5.1/dist/echarts.min.js',function(){
+      document.getElementById('app').insertAdjacentHTML('beforeend','<p id="loaderr">Could not load the chart library (network blocked). Reload on a network that allows jsdelivr/unpkg.</p>');});});
+})();
+</script>
+</body>
+</html>
