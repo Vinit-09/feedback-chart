@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O11y Dashboard-Migration — Toggle-back Survey</title>
+<style>
+  :root{
+    --page:#f4f4f1; --card:#ffffff; --surface:#ffffff;
+    --primary:#0b0b0b; --secondary:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --accent:#2a78d6; --good:#0a7f0a; --critical:#c0392b; --chip:#f0efec;
+    --shadow:0 1px 2px rgba(11,11,11,.05),0 4px 14px rgba(11,11,11,.04);
+  }
+  body.dark{
+    --page:#0d0d0d; --card:#1a1a19; --surface:#1a1a19;
+    --primary:#ffffff; --secondary:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+    --accent:#3987e5; --good:#0ca30c; --critical:#e06666; --chip:#242422;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--page);color:var(--primary);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.45;transition:background .2s,color .2s}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 18px 44px}
+  h1{font-size:19px;margin:0 0 3px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-size:12.5px;color:var(--secondary);margin:0 0 14px;max-width:760px}
+  .bar{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;margin-bottom:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .lab{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .seg{display:inline-flex;flex-wrap:wrap;background:var(--chip);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px}
+  .seg button{border:0;background:transparent;color:var(--secondary);font:inherit;font-size:12.5px;font-weight:600;
+    padding:7px 13px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:all .15s}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--primary);box-shadow:var(--shadow)}
+  select.sel{font:inherit;font-size:13px;font-weight:600;color:var(--primary);background:var(--surface);
+    border:1px solid var(--border);border-radius:9px;padding:8px 12px;cursor:pointer;min-width:110px}
+  .push{margin-left:auto;display:flex;gap:8px;align-self:flex-end}
+  .ghost{border:1px solid var(--border);background:var(--surface);color:var(--secondary);font:inherit;font-size:12.5px;
+    font-weight:600;padding:8px 12px;border-radius:9px;cursor:pointer}
+  .ghost[aria-pressed="true"]{color:var(--primary);border-color:var(--accent)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px 12px;box-shadow:var(--shadow)}
+  .card h2{font-size:15px;margin:0 0 2px;font-weight:700;letter-spacing:-.01em}
+  .badge{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 7px;border-radius:6px;background:var(--chip);color:var(--muted);border:1px solid var(--border);vertical-align:middle;margin-left:8px}
+  .cap{font-size:12.5px;color:var(--secondary);margin:2px 0 12px}
+  .cap b{color:var(--primary)}
+  .win{color:var(--muted);font-weight:600}
+  #chart{width:100%;height:430px}
+  .tblwrap{margin-top:14px;overflow-x:auto}
+  table.data{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.data th,table.data td{padding:7px 12px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+  table.data th:first-child,table.data td:first-child{text-align:left}
+  table.data thead th{color:var(--muted);font-weight:600;background:var(--chip)}
+  table.data tr.tot td{font-weight:700}
+  .hidden{display:none !important}
+  footer.note{margin-top:18px;font-size:11px;color:var(--muted);line-height:1.6}
+  footer.note b{color:var(--secondary)}
+  #loaderr{padding:36px 6px;color:var(--secondary);font-size:14px}
+  @media (max-width:640px){ .push{margin-left:0;width:100%} #chart{height:400px} }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <h1>O11y Dashboard-Migration — Toggle-back Survey</h1>
+  <p class="sub">In-product survey shown when a user switches from the <strong>new</strong> Test Observability dashboard <strong>back to the old</strong> one. Pick a metric and a month — each view shows that month plus the two months before it.</p>
+
+  <div class="bar">
+    <div class="field"><span class="lab">Metric</span><div class="seg" id="metricSeg" role="group" aria-label="Metric"></div></div>
+    <div class="field"><span class="lab">Month (+ 2 prior)</span><select class="sel" id="monthSel" aria-label="Anchor month"></select></div>
+    <div class="field"><span class="lab">Product</span>
+      <div class="seg" id="prodSeg" role="group" aria-label="Product">
+        <button data-p="All" aria-pressed="true">Both</button>
+        <button data-p="Automate" aria-pressed="false">Automate</button>
+        <button data-p="App Automate" aria-pressed="false">App Automate</button>
+      </div>
+    </div>
+    <div class="push">
+      <button class="ghost" id="tableBtn" aria-pressed="false">▤ Table</button>
+      <button class="ghost" id="themeBtn">◐ Theme</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="chTitle"></h2>
+    <p class="cap" id="chCap"></p>
+    <div id="chart"></div>
+    <div class="tblwrap hidden" id="tbl"></div>
+  </div>
+  <footer class="note" id="foot"></footer>
+</div>
+
+<script>
+const DATA = {"months":["2026-03","2026-04","2026-05","2026-06"],"labels":{"2026-03":"Mar","2026-04":"Apr","2026-05":"May","2026-06":"Jun"},"products":["Automate","App Automate"],"categories":["Just Browsing","Missing Functionality","Performance Issue","Workflow Friction","Data Issue","Unspecified"],"friction":["Missing Functionality","Performance Issue","Workflow Friction","Data Issue"],"plans":["Paid","Freemium","Extended Free Trial"],"reasons":["Too many clicks to view a test","Live/Interactive Test Execution","Dashboard page load is slow","Finding a specific build or test","Video or logs takes too long to load","Missing test results in the build","Cannot see all running builds at a glance","Search by Session ID","Missing latest or old builds","Missing Logs (Videos, Text, Screenshots, Network, Console, Device)","Delete Build/Session","Live video or logs are lagging","Build or test execution delayed or doesn't appear","App Upload / App Management","Identifying or Debugging a failed test","Public / Shareable Links","Incorrect Pass/Fail Build or Test Status","Frequent \"Something went wrong\" errors","Viewing parallel or queue usage","Video player controls are broken"],"reasonCat":{"Dashboard page load is slow":"Performance Issue","Build or test execution delayed or doesn't appear":"Performance Issue","Finding a specific build or test":"Workflow Friction","Public / Shareable Links":"Missing Functionality","Missing test results in the build":"Data Issue","Missing latest or old builds":"Data Issue","Cannot see all running builds at a glance":"Workflow Friction","Delete Build/Session":"Missing Functionality","Live/Interactive Test Execution":"Missing Functionality","Video or logs takes too long to load":"Performance Issue","App Upload / App Management":"Missing Functionality","Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":"Data Issue","Live video or logs are lagging":"Performance Issue","Frequent \"Something went wrong\" errors":"Performance Issue","Too many clicks to view a test":"Workflow Friction","Incorrect Pass/Fail Build or Test Status":"Data Issue","Search by Session ID":"Missing Functionality","Video player controls are broken":"Performance Issue","Viewing parallel or queue usage":"Workflow Friction","Identifying or Debugging a failed test":"Workflow Friction"},"cube":{"2026-03":{"Automate":{"events":1289,"users":771,"category":{"Just Browsing":767,"Missing Functionality":151,"Performance Issue":126,"Workflow Friction":106,"Data Issue":80,"Unspecified":59},"plan":{"Paid":484,"Freemium":619,"Extended Free Trial":186},"reason":{"Dashboard page load is slow":18,"Build or test execution delayed or doesn't appear":13,"Finding a specific build or test":25,"Public / Shareable Links":16,"Missing latest or old builds":17,"Cannot see all running builds at a glance":19,"Delete Build/Session":14,"App Upload / App Management":9,"Live/Interactive Test Execution":30,"Too many clicks to view a test":35,"Incorrect Pass/Fail Build or Test Status":8,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":17,"Search by Session ID":10,"Frequent \"Something went wrong\" errors":9,"Missing test results in the build":14,"Video player controls are broken":3,"Live video or logs are lagging":8,"Viewing parallel or queue usage":6,"Video or logs takes too long to load":62,"Identifying or Debugging a failed test":7}},"App Automate":{"events":3024,"users":1393,"category":{"Just Browsing":1822,"Missing Functionality":368,"Performance Issue":235,"Workflow Friction":257,"Data Issue":188,"Unspecified":154},"plan":{"Paid":1732,"Freemium":994,"Extended Free Trial":298},"reason":{"Missing test results in the build":49,"Cannot see all running builds at a glance":46,"Delete Build/Session":40,"Live/Interactive Test Execution":69,"Video or logs takes too long to load":37,"Dashboard page load is slow":55,"Missing latest or old builds":37,"Finding a specific build or test":46,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":34,"Live video or logs are lagging":32,"Frequent \"Something went wrong\" errors":23,"Too many clicks to view a test":89,"Build or test execution delayed or doesn't appear":30,"App Upload / App Management":35,"Search by Session ID":21,"Public / Shareable Links":13,"Video player controls are broken":17,"Viewing parallel or queue usage":8,"Incorrect Pass/Fail Build or Test Status":13,"Identifying or Debugging a failed test":20}},"All":{"events":4313,"users":2024,"category":{"Just Browsing":2589,"Missing Functionality":519,"Performance Issue":361,"Workflow Friction":363,"Data Issue":268,"Unspecified":213},"plan":{"Paid":2216,"Freemium":1613,"Extended Free Trial":484},"reason":{"Dashboard page load is slow":73,"Build or test execution delayed or doesn't appear":43,"Finding a specific build or test":71,"Public / Shareable Links":29,"Missing test results in the build":63,"Missing latest or old builds":54,"Cannot see all running builds at a glance":65,"Delete Build/Session":54,"Live/Interactive Test Execution":99,"Video or logs takes too long to load":99,"App Upload / App Management":44,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":51,"Live video or logs are lagging":40,"Frequent \"Something went wrong\" errors":32,"Too many clicks to view a test":124,"Incorrect Pass/Fail Build or Test Status":21,"Search by Session ID":31,"Video player controls are broken":20,"Viewing parallel or queue usage":14,"Identifying or Debugging a failed test":27}}},"2026-04":{"Automate":{"events":1446,"users":1001,"category":{"Just Browsing":945,"Missing Functionality":181,"Performance Issue":92,"Workflow Friction":124,"Data Issue":90,"Unspecified":14},"plan":{"Paid":645,"Freemium":624,"Extended Free Trial":177},"reason":{"Live video or logs are lagging":7,"Finding a specific build or test":35,"Too many clicks to view a test":39,"Live/Interactive Test Execution":30,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":14,"Missing test results in the build":27,"Missing latest or old builds":18,"Search by Session ID":31,"Cannot see all running builds at a glance":19,"Public / Shareable Links":14,"Identifying or Debugging a failed test":11,"Delete Build/Session":13,"Dashboard page load is slow":30,"Video or logs takes too long to load":17,"App Upload / App Management":13,"Frequent \"Something went wrong\" errors":9,"Video player controls are broken":5,"Viewing parallel or queue usage":5,"Build or test execution delayed or doesn't appear":10,"Incorrect Pass/Fail Build or Test Status":7}},"App Automate":{"events":3137,"users":1642,"category":{"Just Browsing":2040,"Missing Functionality":393,"Performance Issue":270,"Workflow Friction":237,"Data Issue":171,"Unspecified":26},"plan":{"Paid":1735,"Freemium":1000,"Extended Free Trial":402},"reason":{"App Upload / App Management":38,"Live/Interactive Test Execution":76,"Build or test execution delayed or doesn't appear":40,"Too many clicks to view a test":71,"Finding a specific build or test":46,"Delete Build/Session":43,"Dashboard page load is slow":67,"Video or logs takes too long to load":40,"Identifying or Debugging a failed test":32,"Viewing parallel or queue usage":12,"Cannot see all running builds at a glance":46,"Video player controls are broken":15,"Search by Session ID":41,"Public / Shareable Links":25,"Missing latest or old builds":27,"Live video or logs are lagging":38,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":31,"Missing test results in the build":30,"Frequent \"Something went wrong\" errors":20,"Incorrect Pass/Fail Build or Test Status":25}},"All":{"events":4583,"users":2384,"category":{"Just Browsing":2985,"Missing Functionality":574,"Performance Issue":362,"Workflow Friction":361,"Data Issue":261,"Unspecified":40},"plan":{"Paid":2380,"Freemium":1624,"Extended Free Trial":579},"reason":{"App Upload / App Management":51,"Live/Interactive Test Execution":106,"Build or test execution delayed or doesn't appear":50,"Too many clicks to view a test":110,"Live video or logs are lagging":45,"Finding a specific build or test":81,"Delete Build/Session":56,"Dashboard page load is slow":97,"Video or logs takes too long to load":57,"Identifying or Debugging a failed test":43,"Viewing parallel or queue usage":17,"Cannot see all running builds at a glance":65,"Video player controls are broken":20,"Search by Session ID":72,"Public / Shareable Links":39,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":45,"Missing test results in the build":57,"Missing latest or old builds":45,"Frequent \"Something went wrong\" errors":29,"Incorrect Pass/Fail Build or Test Status":32}}},"2026-05":{"Automate":{"events":845,"users":572,"category":{"Just Browsing":551,"Missing Functionality":79,"Performance Issue":75,"Workflow Friction":65,"Data Issue":69,"Unspecified":6},"plan":{"Paid":389,"Freemium":294,"Extended Free Trial":156},"reason":{"Missing test results in the build":16,"Cannot see all running builds at a glance":12,"Live video or logs are lagging":10,"Too many clicks to view a test":21,"Finding a specific build or test":12,"Identifying or Debugging a failed test":7,"Build or test execution delayed or doesn't appear":13,"Search by Session ID":11,"Video or logs takes too long to load":12,"Dashboard page load is slow":22,"Live/Interactive Test Execution":13,"Missing latest or old builds":12,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":18,"Public / Shareable Links":6,"Incorrect Pass/Fail Build or Test Status":3,"Viewing parallel or queue usage":3,"Delete Build/Session":8,"App Upload / App Management":5,"Frequent \"Something went wrong\" errors":6,"Video player controls are broken":1}},"App Automate":{"events":2102,"users":1061,"category":{"Just Browsing":1389,"Missing Functionality":225,"Performance Issue":195,"Workflow Friction":166,"Data Issue":117,"Unspecified":10},"plan":{"Paid":1192,"Freemium":590,"Extended Free Trial":310},"reason":{"App Upload / App Management":20,"Finding a specific build or test":40,"Identifying or Debugging a failed test":8,"Too many clicks to view a test":57,"Missing test results in the build":30,"Live/Interactive Test Execution":38,"Video or logs takes too long to load":42,"Delete Build/Session":24,"Viewing parallel or queue usage":9,"Cannot see all running builds at a glance":20,"Dashboard page load is slow":42,"Live video or logs are lagging":36,"Build or test execution delayed or doesn't appear":24,"Video player controls are broken":12,"Search by Session ID":37,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":27,"Frequent \"Something went wrong\" errors":6,"Missing latest or old builds":13,"Incorrect Pass/Fail Build or Test Status":11,"Public / Shareable Links":16}},"All":{"events":2947,"users":1516,"category":{"Just Browsing":1940,"Missing Functionality":304,"Performance Issue":270,"Workflow Friction":231,"Data Issue":186,"Unspecified":16},"plan":{"Paid":1581,"Freemium":884,"Extended Free Trial":466},"reason":{"App Upload / App Management":25,"Finding a specific build or test":52,"Missing test results in the build":46,"Cannot see all running builds at a glance":32,"Identifying or Debugging a failed test":15,"Too many clicks to view a test":78,"Live/Interactive Test Execution":51,"Video or logs takes too long to load":54,"Live video or logs are lagging":46,"Build or test execution delayed or doesn't appear":37,"Delete Build/Session":32,"Search by Session ID":48,"Viewing parallel or queue usage":12,"Dashboard page load is slow":64,"Video player controls are broken":13,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":45,"Missing latest or old builds":25,"Frequent \"Something went wrong\" errors":12,"Incorrect Pass/Fail Build or Test Status":14,"Public / Shareable Links":22}}},"2026-06":{"Automate":{"events":950,"users":612,"category":{"Just Browsing":547,"Missing Functionality":128,"Performance Issue":110,"Workflow Friction":97,"Data Issue":68,"Unspecified":0},"plan":{"Paid":419,"Freemium":402,"Extended Free Trial":129},"reason":{"Identifying or Debugging a failed test":11,"Cannot see all running builds at a glance":20,"Finding a specific build or test":22,"Public / Shareable Links":8,"Delete Build/Session":16,"Too many clicks to view a test":39,"Frequent \"Something went wrong\" errors":11,"Dashboard page load is slow":25,"Missing test results in the build":17,"Missing latest or old builds":21,"Viewing parallel or queue usage":9,"Search by Session ID":22,"Video or logs takes too long to load":19,"Build or test execution delayed or doesn't appear":13,"Video player controls are broken":7,"Live video or logs are lagging":10,"App Upload / App Management":12,"Live/Interactive Test Execution":19,"Incorrect Pass/Fail Build or Test Status":9,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":8}},"App Automate":{"events":2247,"users":1112,"category":{"Just Browsing":1379,"Missing Functionality":251,"Performance Issue":222,"Workflow Friction":213,"Data Issue":182,"Unspecified":0},"plan":{"Paid":1384,"Freemium":589,"Extended Free Trial":274},"reason":{"Frequent \"Something went wrong\" errors":16,"Incorrect Pass/Fail Build or Test Status":27,"Dashboard page load is slow":50,"Missing latest or old builds":40,"App Upload / App Management":22,"Viewing parallel or queue usage":22,"Too many clicks to view a test":63,"Live/Interactive Test Execution":41,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":35,"Build or test execution delayed or doesn't appear":31,"Video or logs takes too long to load":34,"Live video or logs are lagging":34,"Finding a specific build or test":42,"Video player controls are broken":13,"Delete Build/Session":22,"Identifying or Debugging a failed test":27,"Cannot see all running builds at a glance":38,"Public / Shareable Links":20,"Search by Session ID":35,"Missing test results in the build":45}},"All":{"events":3197,"users":1579,"category":{"Just Browsing":1926,"Missing Functionality":379,"Performance Issue":332,"Workflow Friction":310,"Data Issue":250,"Unspecified":0},"plan":{"Paid":1803,"Freemium":991,"Extended Free Trial":403},"reason":{"Frequent \"Something went wrong\" errors":27,"Incorrect Pass/Fail Build or Test Status":36,"Dashboard page load is slow":75,"Missing latest or old builds":61,"App Upload / App Management":34,"Viewing parallel or queue usage":31,"Too many clicks to view a test":102,"Live/Interactive Test Execution":60,"Missing Logs (Videos, Text, Screenshots, Network, Console, Device)":43,"Build or test execution delayed or doesn't appear":44,"Video or logs takes too long to load":53,"Live video or logs are lagging":44,"Identifying or Debugging a failed test":38,"Cannot see all running builds at a glance":58,"Finding a specific build or test":64,"Video player controls are broken":20,"Public / Shareable Links":28,"Delete Build/Session":38,"Missing test results in the build":62,"Search by Session ID":57}}}}};
+const MG = DATA.months;                       // ['2026-03'...'2026-06']
+const MLAB = DATA.labels;                      // {key:'Mar'...}
+const CATS = DATA.categories, FRICTION = DATA.friction, PLANS = DATA.plans;
+const REASONS = DATA.reasons, RCAT = DATA.reasonCat;
+
+const METRICS=[
+  {id:'volume',   label:'Volume & split',   title:'Toggle-backs & product split', badge:'deterministic'},
+  {id:'mix',      label:'Feedback mix',      title:'Feedback mix — friction vs just-browsing', badge:'deterministic'},
+  {id:'friction', label:'Friction categories', title:'Friction categories (excl. Just Browsing)', badge:'deterministic'},
+  {id:'plan',     label:'Plan split',        title:'Plan split', badge:'deterministic'},
+  {id:'reasons',  label:'Top friction reasons', title:'Top friction reasons', badge:'survey options'}
+];
+
+const PAL={
+  light:{surface:'#ffffff',primary:'#0b0b0b',secondary:'#52514e',muted:'#898781',grid:'#e1e0d9',baseline:'#c3c2b7',accent:'#2a78d6',
+    product:['#2a78d6','#1baf7a'],
+    fric:{'Missing Functionality':'#2a78d6','Performance Issue':'#1baf7a','Workflow Friction':'#eda100','Data Issue':'#008300'},
+    browsing:'#b3b2ab', unspec:'#d6d5cd',
+    plan:{'Paid':'#2a78d6','Freemium':'#1baf7a','Extended Free Trial':'#eda100'}},
+  dark:{surface:'#1a1a19',primary:'#ffffff',secondary:'#c3c2b7',muted:'#898781',grid:'#2c2c2a',baseline:'#383835',accent:'#3987e5',
+    product:['#3987e5','#199e70'],
+    fric:{'Missing Functionality':'#3987e5','Performance Issue':'#199e70','Workflow Friction':'#c98500','Data Issue':'#008300'},
+    browsing:'#6f6e68', unspec:'#45443f',
+    plan:{'Paid':'#3987e5','Freemium':'#199e70','Extended Free Trial':'#c98500'}}
+};
+
+const state={metric:'volume',anchor:MG[MG.length-1],product:'All',dark:false};
+let chart=null;
+const N=n=>n.toLocaleString('en-US');
+const P=()=>state.dark?PAL.dark:PAL.light;
+const B=(mk,prod)=>DATA.cube[mk][prod];
+const PB=mk=>DATA.cube[mk][state.product];
+function win(){const i=MG.indexOf(state.anchor);return MG.slice(Math.max(0,i-2),i+1);}
+function prevOf(mk){const i=MG.indexOf(mk);return i>0?MG[i-1]:null;}
+function catColor(p,c){return c==='Just Browsing'?p.browsing:(c==='Unspecified'?p.unspec:(p.fric[c]||p.browsing));}
+
+function tooltipBase(){const p=P();return {trigger:'axis',confine:true,
+  axisPointer:{type:'shadow',shadowStyle:{color:state.dark?'rgba(255,255,255,.05)':'rgba(11,11,11,.04)'}},
+  backgroundColor:p.surface,borderColor:'rgba(0,0,0,.08)',borderWidth:1,
+  extraCssText:'box-shadow:0 6px 20px rgba(0,0,0,.14);border-radius:10px;',textStyle:{color:p.primary,fontSize:12}};}
+function catAxis(data){const p=P();return {type:'category',data,axisLine:{lineStyle:{color:p.baseline}},axisTick:{show:false},
+  axisLabel:{color:p.secondary,fontSize:12.5,fontWeight:600}};}
+function valAxis(extra){const p=P();return Object.assign({type:'value',axisLine:{show:false},axisTick:{show:false},
+  splitLine:{lineStyle:{color:p.grid}},axisLabel:{color:p.muted,fontSize:11}},extra||{});}
+function legendBase(data,extra){const p=P();return Object.assign({data,top:0,right:0,icon:'roundRect',itemWidth:11,itemHeight:11,
+  itemGap:12,textStyle:{color:p.secondary,fontSize:11.5},type:'scroll'},extra||{});}
+function seg(){const p=P();return {borderColor:p.surface,borderWidth:2,borderRadius:2};}
+function totalSeries(totals,stackId){const p=P();return {name:'__total',type:'bar',stack:stackId,data:totals.map(()=>0),silent:true,
+  itemStyle:{color:'transparent',borderWidth:0},tooltip:{show:false},
+  label:{show:true,position:'top',distance:6,color:p.primary,fontWeight:700,fontSize:12,formatter:pm=>N(totals[pm.dataIndex])},z:5};}
+function gridB(top){return {left:6,right:14,top:top||34,bottom:6,containLabel:true};}
+
+function optVolume(w){
+  const p=P(),lab=w.map(k=>MLAB[k]),isAll=state.product==='All';
+  const prods=isAll?DATA.products:[state.product];
+  const totals=w.map(k=>PB(k).events);
+  const series=prods.map((pr,idx)=>({name:pr,type:'bar',stack:'v',barMaxWidth:90,
+    itemStyle:Object.assign({color:p.product[isAll?idx:DATA.products.indexOf(pr)]},seg()),
+    label:{show:true,color:'#fff',fontSize:12,fontWeight:600,formatter:pm=>pm.value>80?N(pm.value):''},
+    data:w.map(k=>B(k,pr).events)}));
+  series.push(totalSeries(totals,'v'));
+  return {backgroundColor:'transparent',animationDuration:450,grid:gridB(),legend:isAll?legendBase(prods):{show:false},
+    xAxis:catAxis(lab),yAxis:valAxis(),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const b=PB(w[rows[0].dataIndex]);let s='<b>'+rows[0].axisValue+' 2026</b>',t=0;
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{t+=r.value;s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';});
+      s+='<br><span style="color:'+p.muted+'">Total: <b style="color:'+p.primary+'">'+N(b.events)+'</b> · '+N(b.users)+' users</span>';return s;}}),series};
+}
+function stackByKeys(w,keys,colorFn,stackId){
+  return keys.map(key=>({name:key,type:'bar',stack:stackId,barMaxWidth:90,
+    itemStyle:Object.assign({color:colorFn(key)},seg()),label:{show:false},
+    data:w.map(k=>PB(k)[stackId==='mix'?'category':(stackId==='fr'?'category':'plan')][key])}));
+}
+function optMix(w){
+  const p=P(),lab=w.map(k=>MLAB[k]);
+  const series=CATS.map(c=>({name:c,type:'bar',stack:'mx',barMaxWidth:90,
+    itemStyle:Object.assign({color:catColor(p,c)},seg()),label:{show:false},data:w.map(k=>PB(k).category[c])}));
+  series.push(totalSeries(w.map(k=>PB(k).events),'mx'));
+  return {backgroundColor:'transparent',animationDuration:450,grid:gridB(52),legend:legendBase(CATS,{width:'94%'}),
+    xAxis:catAxis(lab),yAxis:valAxis(),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const b=PB(w[rows[0].dataIndex]);
+      const fr=FRICTION.reduce((a,c)=>a+b.category[c],0);let s='<b>'+rows[0].axisValue+' 2026</b>';
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{if(r.value>0)s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';});
+      s+='<br><span style="color:'+p.muted+'">Structured friction: <b style="color:'+p.primary+'">'+N(fr)+' ('+Math.round(fr/b.events*100)+'%)</b></span>';return s;}}),series};
+}
+function optFriction(w){
+  const p=P(),lab=w.map(k=>MLAB[k]);
+  const series=FRICTION.map(c=>({name:c,type:'bar',stack:'fr',barMaxWidth:90,
+    itemStyle:Object.assign({color:p.fric[c]},seg()),
+    label:{show:true,color:'#fff',fontSize:10.5,fontWeight:600,formatter:pm=>pm.value>45?N(pm.value):''},
+    data:w.map(k=>PB(k).category[c])}));
+  series.push(totalSeries(w.map(k=>FRICTION.reduce((a,c)=>a+PB(k).category[c],0)),'fr'));
+  return {backgroundColor:'transparent',animationDuration:450,grid:gridB(34),legend:legendBase(FRICTION,{width:'94%'}),
+    xAxis:catAxis(lab),yAxis:valAxis(),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{let s='<b>'+rows[0].axisValue+' 2026 — friction</b>';
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>');return s;}}),series};
+}
+function optPlan(w){
+  const p=P(),lab=w.map(k=>MLAB[k]);
+  const series=PLANS.map(pl=>({name:pl,type:'bar',stack:'pl',barMaxWidth:90,
+    itemStyle:Object.assign({color:p.plan[pl]},seg()),
+    label:{show:true,color:'#fff',fontSize:11,fontWeight:600,formatter:pm=>pm.value>120?N(pm.value):''},
+    data:w.map(k=>PB(k).plan[pl])}));
+  return {backgroundColor:'transparent',animationDuration:450,grid:gridB(),legend:legendBase(PLANS),
+    xAxis:catAxis(lab),yAxis:valAxis(),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const b=PB(w[rows[0].dataIndex]);const t=PLANS.reduce((a,x)=>a+b.plan[x],0)||1;
+      let s='<b>'+rows[0].axisValue+' 2026</b>';rows.forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/t*100)+'%)');return s;}}),series};
+}
+function optReasons(){
+  const p=P(),b=PB(state.anchor);
+  const items=REASONS.map(r=>[r,b.reason[r]||0]).filter(x=>x[1]>0).sort((a,c)=>a[1]-c[1]);
+  const top=items.slice(-15);                       // top 15 ascending (largest at top)
+  const cats=FRICTION.filter(c=>top.some(t=>RCAT[t[0]]===c));
+  const series=cats.map(c=>({name:c,type:'bar',stack:'r',barMaxWidth:16,
+    itemStyle:{color:p.fric[c],borderRadius:[0,3,3,0]},
+    label:{show:true,position:'right',color:p.secondary,fontSize:10,formatter:pm=>pm.value>0?N(pm.value):''},
+    data:top.map(t=>RCAT[t[0]]===c?t[1]:'-')}));
+  return {backgroundColor:'transparent',animationDuration:450,grid:{left:6,right:40,top:30,bottom:4,containLabel:true},
+    legend:legendBase(cats),
+    xAxis:valAxis(),
+    yAxis:Object.assign(catAxis(top.map(t=>t[0])),{axisLabel:{color:p.secondary,fontSize:11,width:230,overflow:'truncate'}}),
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const r=rows.find(x=>x.value!=='-'&&x.value>0)||rows[0];
+      return '<b>'+r.axisValue+'</b><br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';}}),series};
+}
+const BUILD={volume:optVolume,mix:optMix,friction:optFriction,plan:optPlan,reasons:optReasons};
+
+function pct(n,d){return d?Math.round(n/d*100):0;}
+function caption(w){
+  const a=state.anchor,la=MLAB[a],b=PB(a),pv=prevOf(a),bp=pv?PB(pv):null;
+  const winTxt='<span class="win">Window: '+w.map(k=>MLAB[k]).join(' · ')+'</span>';
+  let s='';
+  if(state.metric==='volume'){
+    const d=bp?' ('+(b.events>=bp.events?'+':'')+(((b.events-bp.events)/bp.events)*100).toFixed(1)+'% vs '+MLAB[pv]+')':'';
+    s='<b>'+la+': '+N(b.events)+' toggle-backs'+d+' · '+N(b.users)+' distinct users.</b> '+
+      (state.product==='All'?'App Automate '+N(B(a,'App Automate').events)+' / Automate '+N(B(a,'Automate').events)+'.':'');
+  } else if(state.metric==='mix'){
+    const fr=FRICTION.reduce((x,c)=>x+b.category[c],0),sh=pct(fr,b.events);
+    const d=bp?' (was '+pct(FRICTION.reduce((x,c)=>x+bp.category[c],0),bp.events)+'% in '+MLAB[pv]+')':'';
+    s='<b>'+la+' structured friction: '+sh+'% ('+N(fr)+' of '+N(b.events)+')'+d+'.</b> The rest is "Just Browsing" (exploration).';
+  } else if(state.metric==='friction'){
+    const fr=FRICTION.reduce((x,c)=>x+b.category[c],0);
+    const topc=FRICTION.slice().sort((x,y)=>b.category[y]-b.category[x])[0];
+    s='<b>'+la+' friction events: '+N(fr)+'.</b> '+topc+' leads ('+N(b.category[topc])+'). Excludes "Just Browsing".';
+  } else if(state.metric==='plan'){
+    const t=PLANS.reduce((x,p2)=>x+b.plan[p2],0);
+    s='<b>'+la+': '+PLANS.map(p2=>p2.replace('Extended Free Trial','EFT')+' '+N(b.plan[p2])).join(' · ')+'.</b> Share of '+N(t)+' plan-tagged events.';
+  } else if(state.metric==='reasons'){
+    const items=REASONS.map(r=>[r,b.reason[r]||0]).filter(x=>x[1]>0).sort((a2,c2)=>c2[1]-a2[1]);
+    const top=items[0];
+    s='<b>'+la+' top friction driver: '+(top?top[0]+' ('+N(top[1])+')':'—')+'.</b> Predefined survey reasons within friction categories; "Other/free-text" excluded. <em>Anchor month only.</em>';
+    return s+' '+winTxt.replace('Window','Anchor');
+  }
+  return s+' '+winTxt;
+}
+
+function renderTable(){
+  const w=win(),el=document.getElementById('tbl');
+  const head=m=>'<thead><tr><th>'+m+'</th>'+w.map(k=>'<th>'+MLAB[k]+'</th>').join('')+'</tr></thead>';
+  let rows=[],lbl='';
+  if(state.metric==='volume'){lbl='Series';
+    (state.product==='All'?DATA.products:[state.product]).forEach(pr=>rows.push({l:pr,v:w.map(k=>B(k,pr).events)}));
+    rows.push({l:'Total events',v:w.map(k=>PB(k).events),tot:1});
+    rows.push({l:'Distinct users',v:w.map(k=>PB(k).users),tot:1});
+  } else if(state.metric==='mix'){lbl='Category';CATS.forEach(c=>rows.push({l:c,v:w.map(k=>PB(k).category[c])}));
+    rows.push({l:'Friction total',v:w.map(k=>FRICTION.reduce((a,c)=>a+PB(k).category[c],0)),tot:1});
+  } else if(state.metric==='friction'){lbl='Friction category';FRICTION.forEach(c=>rows.push({l:c,v:w.map(k=>PB(k).category[c])}));
+  } else if(state.metric==='plan'){lbl='Plan';PLANS.forEach(pl=>rows.push({l:pl,v:w.map(k=>PB(k).plan[pl])}));
+  } else {lbl='Reason ('+MLAB[state.anchor]+')';
+    const b=PB(state.anchor);const items=REASONS.map(r=>[r,b.reason[r]||0]).filter(x=>x[1]>0).sort((a,c)=>c[1]-a[1]);
+    el.innerHTML='<table class="data"><thead><tr><th>Reason</th><th>Category</th><th>'+MLAB[state.anchor]+'</th></tr></thead><tbody>'+
+      items.map(t=>'<tr><td>'+t[0]+'</td><td style="text-align:left">'+RCAT[t[0]]+'</td><td>'+N(t[1])+'</td></tr>').join('')+'</tbody></table>';return;}
+  el.innerHTML='<table class="data">'+head(lbl)+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map(x=>'<td>'+N(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+}
+
+function render(){
+  const w=win(),m=METRICS.find(x=>x.id===state.metric);
+  document.getElementById('chTitle').innerHTML=m.title+' <span class="badge">'+m.badge+'</span>';
+  document.getElementById('chCap').innerHTML=caption(w);
+  document.getElementById('chart').style.height=(state.metric==='reasons'?470:430)+'px';
+  chart.resize();
+  chart.setOption(BUILD[state.metric](w),true);
+  if(!document.getElementById('tbl').classList.contains('hidden'))renderTable();
+}
+function buildControls(){
+  const ms=document.getElementById('metricSeg');
+  ms.innerHTML=METRICS.map(m=>'<button data-m="'+m.id+'" aria-pressed="'+(m.id===state.metric)+'">'+m.label+'</button>').join('');
+  ms.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.metric=b.dataset.m;
+    [...ms.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
+  const sel=document.getElementById('monthSel');
+  sel.innerHTML=MG.slice().reverse().map(k=>'<option value="'+k+'"'+(k===state.anchor?' selected':'')+'>'+MLAB[k]+' 2026</option>').join('');
+  sel.addEventListener('change',e=>{state.anchor=e.target.value;render();});
+  const ps=document.getElementById('prodSeg');
+  ps.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;state.product=b.dataset.p;
+    [...ps.children].forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
+  const tb=document.getElementById('tableBtn');
+  tb.addEventListener('click',()=>{const t=document.getElementById('tbl');const show=t.classList.contains('hidden');
+    t.classList.toggle('hidden',!show);tb.setAttribute('aria-pressed',show);if(show)renderTable();});
+  document.getElementById('themeBtn').addEventListener('click',()=>{state.dark=!state.dark;document.body.classList.toggle('dark',state.dark);render();});
+}
+function renderFoot(){document.getElementById('foot').innerHTML=
+  '<b>Source:</b> in-product survey event <code>O11yToExistingDashboardToggleFeedback</code> (BigQuery), Mar–Jun 2026. '+
+  'Event/user counts and the structured category/reason/plan breakdowns are deterministic survey fields. '+
+  '"Top friction reasons" are the survey’s predefined reason options (free-text "Other" excluded). '+
+  'Each view shows the chosen month + up to 2 prior. Aggregate only — no customer PII.';}
+function init(){
+  state.dark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.body.classList.toggle('dark',state.dark);
+  chart=echarts.init(document.getElementById('chart'),null,{renderer:'svg'});
+  buildControls();renderFoot();render();
+  let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>chart.resize(),120);});
+}
+(function(){function go(){if(window.echarts)init();}
+  function add(src,onerr){const s=document.createElement('script');s.src=src;s.onload=go;s.onerror=onerr;document.head.appendChild(s);}
+  add('https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js',function(){
+    add('https://unpkg.com/echarts@5.5.1/dist/echarts.min.js',function(){
+      document.getElementById('app').insertAdjacentHTML('beforeend','<p id="loaderr">Could not load the chart library (network blocked). Reload on a network that allows jsdelivr/unpkg.</p>');});});
+})();
+</script>
+</body>
+</html>
