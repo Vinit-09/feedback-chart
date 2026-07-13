@@ -52,7 +52,7 @@
 <body>
 <div class="wrap" id="app">
   <h1>Slack — Customer / UX Threads</h1>
-  <p class="sub">Relevance-filtered customer &amp; UX threads from <strong>#help-automate</strong> and <strong>#help-appautomate</strong>. Pick a metric and a month — trend views show the chosen month + two prior; themes &amp; Jira are a June snapshot. Aggregate only — no message text or names.</p>
+  <p class="sub">Relevance-filtered customer &amp; UX threads from <strong>#help-automate</strong> and <strong>#help-appautomate</strong>. Pick a metric and a month — trend views show the chosen month + two prior; themes &amp; Jira switch with the selected month. Aggregate only — no message text or names.</p>
   <div class="bar">
     <div class="field"><span class="lab">Metric</span><div class="seg" id="metricSeg" role="group" aria-label="Metric"></div></div>
     <div class="field"><span class="lab">Month (+ 2 prior)</span><select class="sel" id="monthSel" aria-label="Anchor month"></select></div>
@@ -77,7 +77,7 @@
   <footer class="note" id="foot"></footer>
 </div>
 <script>
-const DATA={"months":["2026-03","2026-04","2026-05","2026-06"],"labels":{"2026-03":"Mar","2026-04":"Apr","2026-05":"May","2026-06":"Jun"},"products":["Automate","App Automate"],"relevance":["customer","both","ux"],"relLabel":{"customer":"Customer","both":"Feature (both)","ux":"Pure UX"},"cube":{"2026-03":{"Automate":{"roots":81,"rel":{"customer":76,"both":5,"ux":0}},"App Automate":{"roots":130,"rel":{"customer":108,"both":19,"ux":3}},"All":{"roots":211,"rel":{"customer":184,"both":24,"ux":3}}},"2026-04":{"Automate":{"roots":93,"rel":{"customer":89,"both":3,"ux":1}},"App Automate":{"roots":108,"rel":{"customer":89,"both":15,"ux":4}},"All":{"roots":201,"rel":{"customer":178,"both":18,"ux":5}}},"2026-05":{"Automate":{"roots":94,"rel":{"customer":77,"both":11,"ux":6}},"App Automate":{"roots":149,"rel":{"customer":115,"both":27,"ux":7}},"All":{"roots":243,"rel":{"customer":192,"both":38,"ux":13}}},"2026-06":{"Automate":{"roots":99,"rel":{"customer":94,"both":3,"ux":2}},"App Automate":{"roots":137,"rel":{"customer":111,"both":21,"ux":5}},"All":{"roots":236,"rel":{"customer":205,"both":24,"ux":7}}}},"themesMonth":"2026-06","themesJune":[{"name":"Session reliability & incidents","total":76,"automate":31,"appauto":45,"dir":"Defend"},{"name":"Framework, version & language support","total":33,"automate":19,"appauto":14,"dir":"Defend \u00b7 Grow"},{"name":"Device-capability depth","total":27,"automate":3,"appauto":24,"dir":"Grow"},{"name":"Dashboard, reporting & artifacts","total":27,"automate":11,"appauto":16,"dir":"TRA / convergence"},{"name":"Docs, integrations, onboarding & evals","total":22,"automate":13,"appauto":9,"dir":"Grow / activation"},{"name":"Account, upload, workspace & packaging","total":20,"automate":3,"appauto":17,"dir":"UX / activation \u00b7 Commercial"},{"name":"Networking, proxy & data-residency","total":19,"automate":11,"appauto":8,"dir":"Defend"},{"name":"Device & OS coverage","total":12,"automate":8,"appauto":4,"dir":"Defend \u00b7 Grow"}],"jiraJune":{"order":["Done","In Progress","To Do","Unresolved"],"counts":{"Done":11,"In Progress":4,"To Do":2,"Unresolved":2},"total":19,"asof":"2026-07-07"}};
+const DATA={"months":["2026-03","2026-04","2026-05","2026-06"],"labels":{"2026-03":"Mar","2026-04":"Apr","2026-05":"May","2026-06":"Jun"},"products":["Automate","App Automate"],"relevance":["customer","both","ux"],"relLabel":{"customer":"Customer","both":"Feature (both)","ux":"Pure UX"},"cube":{"2026-03":{"Automate":{"roots":81,"rel":{"customer":76,"both":5,"ux":0}},"App Automate":{"roots":130,"rel":{"customer":108,"both":19,"ux":3}},"All":{"roots":211,"rel":{"customer":184,"both":24,"ux":3}}},"2026-04":{"Automate":{"roots":93,"rel":{"customer":89,"both":3,"ux":1}},"App Automate":{"roots":108,"rel":{"customer":89,"both":15,"ux":4}},"All":{"roots":201,"rel":{"customer":178,"both":18,"ux":5}}},"2026-05":{"Automate":{"roots":94,"rel":{"customer":77,"both":11,"ux":6}},"App Automate":{"roots":149,"rel":{"customer":115,"both":27,"ux":7}},"All":{"roots":243,"rel":{"customer":192,"both":38,"ux":13}}},"2026-06":{"Automate":{"roots":99,"rel":{"customer":94,"both":3,"ux":2}},"App Automate":{"roots":137,"rel":{"customer":111,"both":21,"ux":5}},"All":{"roots":236,"rel":{"customer":205,"both":24,"ux":7}}}},"themesMonth":"2026-06","themesLatest":"2026-06","jiraLatest":"2026-06","themesByMonth":{"2026-05":[{"name": "Dashboard, reporting & artifacts", "total": 46, "automate": 17, "appauto": 29, "dir": "TRA / convergence"}, {"name": "Session reliability & incidents", "total": 41, "automate": 17, "appauto": 24, "dir": "Defend"}, {"name": "Framework, version & language support", "total": 37, "automate": 15, "appauto": 22, "dir": "Defend \u00b7 Grow"}, {"name": "Networking, proxy & data-residency", "total": 33, "automate": 16, "appauto": 17, "dir": "Defend"}, {"name": "Account, upload, workspace & packaging", "total": 28, "automate": 7, "appauto": 21, "dir": "UX / activation \u00b7 Commercial"}, {"name": "Device-capability depth", "total": 26, "automate": 10, "appauto": 16, "dir": "Grow"}, {"name": "Docs, integrations, onboarding & evals", "total": 21, "automate": 7, "appauto": 14, "dir": "Grow / activation"}, {"name": "Device & OS coverage", "total": 11, "automate": 5, "appauto": 6, "dir": "Defend \u00b7 Grow"}],"2026-06":[{"name": "Session reliability & incidents", "total": 76, "automate": 31, "appauto": 45, "dir": "Defend"}, {"name": "Framework, version & language support", "total": 33, "automate": 19, "appauto": 14, "dir": "Defend \u00b7 Grow"}, {"name": "Device-capability depth", "total": 27, "automate": 3, "appauto": 24, "dir": "Grow"}, {"name": "Dashboard, reporting & artifacts", "total": 27, "automate": 11, "appauto": 16, "dir": "TRA / convergence"}, {"name": "Docs, integrations, onboarding & evals", "total": 22, "automate": 13, "appauto": 9, "dir": "Grow / activation"}, {"name": "Account, upload, workspace & packaging", "total": 20, "automate": 3, "appauto": 17, "dir": "UX / activation \u00b7 Commercial"}, {"name": "Networking, proxy & data-residency", "total": 19, "automate": 11, "appauto": 8, "dir": "Defend"}, {"name": "Device & OS coverage", "total": 12, "automate": 8, "appauto": 4, "dir": "Defend \u00b7 Grow"}]},"jiraByMonth":{"2026-05":{"order": ["Done", "In Progress", "To Do", "Unresolved"], "counts": {"Done": 73, "In Progress": 7, "To Do": 14, "Unresolved": 0}, "total": 94, "asof": "2026-07-14"},"2026-06":{"order": ["Done", "In Progress", "To Do", "Unresolved"], "counts": {"Done": 11, "In Progress": 4, "To Do": 2, "Unresolved": 2}, "total": 19, "asof": "2026-07-07"}},"themesJune":[{"name":"Session reliability & incidents","total":76,"automate":31,"appauto":45,"dir":"Defend"},{"name":"Framework, version & language support","total":33,"automate":19,"appauto":14,"dir":"Defend \u00b7 Grow"},{"name":"Device-capability depth","total":27,"automate":3,"appauto":24,"dir":"Grow"},{"name":"Dashboard, reporting & artifacts","total":27,"automate":11,"appauto":16,"dir":"TRA / convergence"},{"name":"Docs, integrations, onboarding & evals","total":22,"automate":13,"appauto":9,"dir":"Grow / activation"},{"name":"Account, upload, workspace & packaging","total":20,"automate":3,"appauto":17,"dir":"UX / activation \u00b7 Commercial"},{"name":"Networking, proxy & data-residency","total":19,"automate":11,"appauto":8,"dir":"Defend"},{"name":"Device & OS coverage","total":12,"automate":8,"appauto":4,"dir":"Defend \u00b7 Grow"}],"jiraJune":{"order":["Done","In Progress","To Do","Unresolved"],"counts":{"Done":11,"In Progress":4,"To Do":2,"Unresolved":2},"total":19,"asof":"2026-07-07"}};
 const MG=DATA.months, MLAB=DATA.labels, PRODS=DATA.products, REL=DATA.relevance, RLAB=DATA.relLabel;
 const METRICS=[
   {id:'volume',label:'Volume & split',title:'Thread volume & product split',badge:'deterministic'},
@@ -101,6 +101,10 @@ const N=n=>n.toLocaleString('en-US');
 const P=()=>state.dark?PAL.dark:PAL.light;
 const B=(mk,prod)=>DATA.cube[mk][prod];
 const PB=mk=>DATA.cube[mk][state.product];
+function themesMk(){return DATA.themesByMonth[state.anchor]?state.anchor:DATA.themesLatest;}
+function jiraMk(){return DATA.jiraByMonth[state.anchor]?state.anchor:DATA.jiraLatest;}
+function TH(){return DATA.themesByMonth[themesMk()];}
+function JI(){return DATA.jiraByMonth[jiraMk()];}
 function win(){const i=MG.indexOf(state.anchor);return MG.slice(Math.max(0,i-2),i+1);}
 function prevOf(mk){const i=MG.indexOf(mk);return i>0?MG[i-1]:null;}
 function tooltipBase(){const p=P();return {trigger:'axis',confine:true,
@@ -149,7 +153,7 @@ function optRelevance(w){
 function optThemes(){
   const p=P();const isAll=state.product==='All';
   const key=state.product==='Automate'?'automate':(state.product==='App Automate'?'appauto':'total');
-  const th=DATA.themesJune.slice().sort((a,b)=>a[key]-b[key]);   // ascending -> largest on top
+  const th=TH().slice().sort((a,b)=>a[key]-b[key]);   // ascending -> largest on top
   const names=th.map(t=>t.name);
   function mk(pr,field,color){return {name:pr,type:'bar',stack:'th',barMaxWidth:18,
     itemStyle:{color:color,borderColor:p.surface,borderWidth:1,borderRadius:2},
@@ -174,7 +178,7 @@ function optThemes(){
       s+='<br>Total: <b>'+N(t.total)+'</b>';return s;}}),series};
 }
 function optJira(){
-  const p=P(),j=DATA.jiraJune;
+  const p=P(),j=JI();
   const data=j.order.map(k=>({value:j.counts[k],itemStyle:{color:p.jira[k],borderRadius:[3,3,0,0]}}));
   return {backgroundColor:'transparent',animationDuration:450,grid:gridB(24),
     xAxis:catAxis(j.order),yAxis:valAxis({maxInterval:2}),
@@ -198,14 +202,14 @@ function caption(w){
     return '<b>'+la+': '+REL.map(rk=>N(b2.rel[rk])+' '+RLAB[rk].toLowerCase()).join(' · ')+'.</b> Share of '+N(b2.roots)+' threads. '+winTxt;
   }
   if(state.metric==='themes'){
-    const tot=DATA.themesJune.reduce((x,t)=>x+t.total,0);
-    const top=DATA.themesJune.slice().sort((a2,b2)=>b2.total-a2.total)[0];
-    return '<b>June snapshot · '+N(tot)+' threads across '+DATA.themesJune.length+' themes'+(state.product!=='All'?' ('+state.product+' slice)':'')+'.</b> '+
+    const tot=TH().reduce((x,t)=>x+t.total,0);
+    const top=TH().slice().sort((a2,b2)=>b2.total-a2.total)[0];
+    return '<b>'+MLAB[themesMk()]+' snapshot · '+N(tot)+' threads across '+TH().length+' themes'+(state.product!=='All'?' ('+state.product+' slice)':'')+'.</b> '+
       top.name+' leads ('+top.total+'). Bar-end tag = count · OKR direction. <em>Single-assignment; not trended month-over-month.</em>';
   }
   if(state.metric==='jira'){
-    const j=DATA.jiraJune;
-    return '<b>'+j.total+' Jira tickets referenced in June threads: '+j.counts['Done']+' Done ('+Math.round(j.counts['Done']/j.total*100)+'%), '+
+    const j=JI();
+    return '<b>'+j.total+' Jira tickets referenced in '+MLAB[jiraMk()]+' threads: '+j.counts['Done']+' Done ('+Math.round(j.counts['Done']/j.total*100)+'%), '+
       j.counts['In Progress']+' In Progress, '+j.counts['To Do']+' To Do, '+j.counts['Unresolved']+' unresolved.</b> Live as of '+j.asof+'. <em>Combined (not product-split).</em>';
   }
 }
@@ -221,16 +225,16 @@ function renderTable(){
     rows.push({l:'Total',v:w.map(k=>PB(k).roots),tot:1});
     el.innerHTML='<table class="data">'+head(lbl)+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map(x=>'<td>'+N(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';return;}
   if(state.metric==='themes'){
-    el.innerHTML='<table class="data"><thead><tr><th>Theme (June)</th><th>Automate</th><th>App Automate</th><th>Total</th><th style="text-align:left">Direction</th></tr></thead><tbody>'+
-      DATA.themesJune.slice().sort((a,b)=>b.total-a.total).map(t=>'<tr><td>'+t.name+'</td><td>'+t.automate+'</td><td>'+t.appauto+'</td><td>'+t.total+'</td><td style="text-align:left">'+t.dir+'</td></tr>').join('')+'</tbody></table>';return;}
-  const j=DATA.jiraJune;
-  el.innerHTML='<table class="data"><thead><tr><th>Jira status (June)</th><th>Tickets</th><th>Share</th></tr></thead><tbody>'+
+    el.innerHTML='<table class="data"><thead><tr><th>Theme ('+MLAB[themesMk()]+')</th><th>Automate</th><th>App Automate</th><th>Total</th><th style="text-align:left">Direction</th></tr></thead><tbody>'+
+      TH().slice().sort((a,b)=>b.total-a.total).map(t=>'<tr><td>'+t.name+'</td><td>'+t.automate+'</td><td>'+t.appauto+'</td><td>'+t.total+'</td><td style="text-align:left">'+t.dir+'</td></tr>').join('')+'</tbody></table>';return;}
+  const j=JI();
+  el.innerHTML='<table class="data"><thead><tr><th>Jira status ('+MLAB[jiraMk()]+')</th><th>Tickets</th><th>Share</th></tr></thead><tbody>'+
     j.order.map(k=>'<tr><td>'+k+'</td><td>'+j.counts[k]+'</td><td>'+Math.round(j.counts[k]/j.total*100)+'%</td></tr>').join('')+
     '<tr class="tot"><td>Total referenced</td><td>'+j.total+'</td><td>100%</td></tr></tbody></table>';
 }
 function render(){
   const w=win(),m=METRICS.find(x=>x.id===state.metric);
-  document.getElementById('chTitle').innerHTML=m.title+' <span class="badge">'+m.badge+'</span>';
+  var bdg=m.badge;if(state.metric==='themes')bdg=MLAB[themesMk()]+' snapshot · est.';if(state.metric==='jira')bdg=MLAB[jiraMk()]+' · live';document.getElementById('chTitle').innerHTML=m.title+' <span class="badge">'+bdg+'</span>';
   document.getElementById('chCap').innerHTML=caption(w);
   document.getElementById('chart').style.height=(state.metric==='themes'?470:430)+'px';
   chart.resize();chart.setOption(BUILD[state.metric](w),true);
