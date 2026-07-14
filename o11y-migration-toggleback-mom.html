@@ -156,7 +156,7 @@ function optVolume(w){
   return {backgroundColor:'transparent',animationDuration:450,grid:gridB(),legend:isAll?legendBase(prods):{show:false},
     xAxis:catAxis(lab),yAxis:valAxis(),
     tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const b=PB(w[rows[0].dataIndex]);let s='<b>'+rows[0].axisValue+' 2026</b>',t=0;
-      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{t+=r.value;s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';});
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{t+=r.value;s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/b.events*100)+'%)';});
       s+='<br><span style="color:'+p.muted+'">Total: <b style="color:'+p.primary+'">'+N(b.events)+'</b> · '+N(b.users)+' users</span>';return s;}}),series};
 }
 function stackByKeys(w,keys,colorFn,stackId){
@@ -167,13 +167,13 @@ function stackByKeys(w,keys,colorFn,stackId){
 function optMix(w){
   const p=P(),lab=w.map(k=>MLAB[k]);
   const series=CATS.map(c=>({name:c,type:'bar',stack:'mx',barMaxWidth:90,
-    itemStyle:Object.assign({color:catColor(p,c)},seg()),label:{show:false},data:w.map(k=>PB(k).category[c])}));
+    itemStyle:Object.assign({color:catColor(p,c)},seg()),label:{show:true,color:'#fff',fontSize:10,fontWeight:600,formatter:pm=>{const t=PB(w[pm.dataIndex]).events;return pm.value/t>=0.08?Math.round(pm.value/t*100)+'%':'';}},data:w.map(k=>PB(k).category[c])}));
   series.push(totalSeries(w.map(k=>PB(k).events),'mx'));
   return {backgroundColor:'transparent',animationDuration:450,grid:gridB(52),legend:legendBase(CATS,{width:'94%'}),
     xAxis:catAxis(lab),yAxis:valAxis(),
     tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const b=PB(w[rows[0].dataIndex]);
       const fr=FRICTION.reduce((a,c)=>a+b.category[c],0);let s='<b>'+rows[0].axisValue+' 2026</b>';
-      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{if(r.value>0)s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';});
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{if(r.value>0)s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/b.events*100)+'%)';});
       s+='<br><span style="color:'+p.muted+'">Structured friction: <b style="color:'+p.primary+'">'+N(fr)+' ('+Math.round(fr/b.events*100)+'%)</b></span>';return s;}}),series};
 }
 function optFriction(w){
@@ -185,8 +185,8 @@ function optFriction(w){
   series.push(totalSeries(w.map(k=>FRICTION.reduce((a,c)=>a+PB(k).category[c],0)),'fr'));
   return {backgroundColor:'transparent',animationDuration:450,grid:gridB(34),legend:legendBase(FRICTION,{width:'94%'}),
     xAxis:catAxis(lab),yAxis:valAxis(),
-    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{let s='<b>'+rows[0].axisValue+' 2026 — friction</b>';
-      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>');return s;}}),series};
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const b=PB(w[rows[0].dataIndex]);const ft=FRICTION.reduce((a,c)=>a+b.category[c],0)||1;let s='<b>'+rows[0].axisValue+' 2026 — friction</b>';
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/ft*100)+'%)');return s;}}),series};
 }
 function optPlan(w){
   const p=P(),lab=w.map(k=>MLAB[k]);
@@ -212,8 +212,8 @@ function optReasons(){
     legend:legendBase(cats),
     xAxis:valAxis(),
     yAxis:Object.assign(catAxis(top.map(t=>t[0])),{axisLabel:{color:p.secondary,fontSize:11,width:230,overflow:'truncate'}}),
-    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const r=rows.find(x=>x.value!=='-'&&x.value>0)||rows[0];
-      return '<b>'+r.axisValue+'</b><br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';}}),series};
+    tooltip:Object.assign(tooltipBase(),{formatter:rows=>{const r=rows.find(x=>x.value!=='-'&&x.value>0)||rows[0];const ct=b.category[RCAT[r.axisValue]]||0;
+      return '<b>'+r.axisValue+'</b><br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>'+(ct?' ('+Math.round(r.value/ct*100)+'% of '+RCAT[r.axisValue]+')':'');}}),series};
 }
 const BUILD={volume:optVolume,mix:optMix,friction:optFriction,plan:optPlan,reasons:optReasons};
 
@@ -261,8 +261,9 @@ function renderTable(){
   } else {lbl='Reason ('+MLAB[state.anchor]+')';
     const b=PB(state.anchor);const items=REASONS.map(r=>[r,b.reason[r]||0]).filter(x=>x[1]>0).sort((a,c)=>c[1]-a[1]);
     el.innerHTML='<table class="data"><thead><tr><th>Reason</th><th>Category</th><th>'+MLAB[state.anchor]+'</th></tr></thead><tbody>'+
-      items.map(t=>'<tr><td>'+t[0]+'</td><td style="text-align:left">'+RCAT[t[0]]+'</td><td>'+N(t[1])+'</td></tr>').join('')+'</tbody></table>';return;}
-  el.innerHTML='<table class="data">'+head(lbl)+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map(x=>'<td>'+N(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+      items.map(t=>{const ct=b.category[RCAT[t[0]]]||0;return '<tr><td>'+t[0]+'</td><td style="text-align:left">'+RCAT[t[0]]+'</td><td>'+N(t[1])+(ct?' <span style="color:var(--muted);font-weight:400">('+Math.round(t[1]/ct*100)+'%)</span>':'')+'</td></tr>';}).join('')+'</tbody></table>';return;}
+  const colTot=w.map(k=>state.metric==='friction'?FRICTION.reduce((a,c)=>a+PB(k).category[c],0):(state.metric==='plan'?PLANS.reduce((a,x)=>a+PB(k).plan[x],0):PB(k).events));
+  el.innerHTML='<table class="data">'+head(lbl)+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map((x,ci)=>'<td>'+N(x)+(!r.tot&&colTot[ci]?' <span style="color:var(--muted);font-weight:400">('+Math.round(x/colTot[ci]*100)+'%)</span>':'')+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
 }
 
 function render(){
