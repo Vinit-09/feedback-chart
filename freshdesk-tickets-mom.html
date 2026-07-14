@@ -187,7 +187,8 @@ function optVolume(w){
     legend: isAll?legendBase(prods):{show:false}, xAxis:catAxis(lab), yAxis:valAxis(),
     tooltip:Object.assign(tooltipBase(),{formatter:rows=>{
       let s='<b>'+rows[0].axisValue+' 2026</b>',t=0;
-      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{t+=r.value;s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>';});
+      const mt=isAll?B(w[rows[0].dataIndex],'All').total:PB(w[rows[0].dataIndex]).total;
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>{t+=r.value;s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/mt*100)+'%)';});
       if(isAll) s+='<br><span style="color:'+p.muted+'">Total: <b style="color:'+p.primary+'">'+N(t)+'</b></span>';
       return s;}}), series};
 }
@@ -203,7 +204,7 @@ function optPriority(w){
     tooltip:Object.assign(tooltipBase(),{formatter:rows=>{
       const b=PB(w[rows[0].dataIndex]); const hu=b.priority.High+b.priority.Urgent;
       let s='<b>'+rows[0].axisValue+' 2026</b>';
-      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>');
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/b.total*100)+'%)');
       s+='<br><span style="color:'+p.muted+'">High+Urgent: <b style="color:'+p.primary+'">'+N(hu)+' ('+Math.round(hu/b.total*100)+'%)</b></span>';
       return s;}}), series};
 }
@@ -225,7 +226,7 @@ function optCategories(w){
   const names=CAT_PRIMARY.concat(['Other']);
   const colors=CAT_PRIMARY.map((_,i)=>p.resolution[i]).concat([p.catOther]);
   const series=names.map((nm,idx)=>({name:nm,type:'bar',stack:'ct',barMaxWidth:96,
-    itemStyle:Object.assign({color:colors[idx]},seg()), label:{show:false},
+    itemStyle:Object.assign({color:colors[idx]},seg()), label:{show:true,color:'#fff',fontSize:10,fontWeight:600,formatter:pm=>{const t=PB(w[pm.dataIndex]).total;return pm.value/t>=0.08?Math.round(pm.value/t*100)+'%':'';}},
     data:w.map(k=>{const b=PB(k); return nm==='Other'? CAT_OTHER.reduce((x,c)=>x+b.category[c],0) : b.category[nm];})}));
   series.push(totalSeries(w.map(k=>PB(k).total),'ct'));
   return {backgroundColor:'transparent',animationDuration:450,grid:gridBase(54),
@@ -233,7 +234,7 @@ function optCategories(w){
     tooltip:Object.assign(tooltipBase(),{formatter:rows=>{
       const b=PB(w[rows[0].dataIndex]);
       let s='<b>'+rows[0].axisValue+' 2026</b>';
-      rows.filter(r=>r.seriesName!=='__total'&&r.value>0).forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>');
+      rows.filter(r=>r.seriesName!=='__total'&&r.value>0).forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/b.total*100)+'%)');
       s+='<br><span style="color:'+p.muted+'">Total: <b style="color:'+p.primary+'">'+N(b.total)+'</b> · click a segment to drill</span>';
       return s;}}),
     series};
@@ -241,7 +242,7 @@ function optCategories(w){
 function optResolution(w){
   const p=P(); const lab=w.map(k=>MLAB[k]);
   const series=RES.map((r,idx)=>({name:r,type:'bar',stack:'rs',barMaxWidth:96,
-    itemStyle:Object.assign({color:p.resolution[idx]},seg()), label:{show:false},
+    itemStyle:Object.assign({color:p.resolution[idx]},seg()), label:{show:true,color:'#fff',fontSize:10,fontWeight:600,formatter:pm=>{const t=PB(w[pm.dataIndex]).total;return pm.value/t>=0.08?Math.round(pm.value/t*100)+'%':'';}},
     data:w.map(k=>PB(k).resolution[r])}));
   series.push(totalSeries(w.map(k=>PB(k).total),'rs'));
   return {backgroundColor:'transparent',animationDuration:450,grid:gridBase(54),
@@ -249,7 +250,7 @@ function optResolution(w){
     tooltip:Object.assign(tooltipBase(),{formatter:rows=>{
       const b=PB(w[rows[0].dataIndex]); const open=OPEN_SET.reduce((x,k)=>x+b.resolution[k],0);
       let s='<b>'+rows[0].axisValue+' 2026</b>';
-      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b>');
+      rows.filter(r=>r.seriesName!=='__total').forEach(r=>s+='<br>'+r.marker+r.seriesName+': <b>'+N(r.value)+'</b> ('+Math.round(r.value/b.total*100)+'%)');
       s+='<br><span style="color:'+p.muted+'">Still open: <b style="color:'+p.primary+'">'+N(open)+' ('+Math.round(open/b.total*100)+'%)</b></span>';
       return s;}}), series};
 }
@@ -321,7 +322,8 @@ function renderTable(){
     RES.forEach(r=>rows.push({l:r,v:w.map(k=>PB(k).resolution[r])}));
     rows.push({l:'Still open (WIP+Pending)',v:w.map(k=>OPEN_SET.reduce((x,kk)=>x+PB(k).resolution[kk],0)),tot:1});
   }
-  el.innerHTML='<table class="data">'+head+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map(x=>'<td>'+N(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+  const colTot=w.map(k=> state.metric==='volume'?(state.product==='All'?B(k,'All').total:PB(k).total):PB(k).total);
+  el.innerHTML='<table class="data">'+head+'<tbody>'+rows.map(r=>'<tr'+(r.tot?' class="tot"':'')+'><td>'+r.l+'</td>'+r.v.map((x,ci)=>'<td>'+N(x)+(r.l!=='Total'&&colTot[ci]?' <span style="color:var(--muted);font-weight:400">('+Math.round(x/colTot[ci]*100)+'%)</span>':'')+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
 }
 
 /* ---------- render ---------- */
