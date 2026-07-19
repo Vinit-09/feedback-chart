@@ -1,0 +1,125 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Freshdesk volume — by product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f9fafb;--panel:#fff;--ink:#111827;--ink-2:#374151;--muted:#6b7280;--muted-2:#9ca3af;--line:#e5e7eb;--line-strong:#d1d5db;--brand:#2563eb;--font:'Inter',-apple-system,system-ui,sans-serif;--mono:'Fira Code',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:#fff;color:var(--ink);padding:10px 12px 6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:6px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.swatch{width:11px;height:11px;border-radius:3px;display:inline-block}
+.charttip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 4px 12px rgb(16 24 40/.14);padding:7px 10px;font-size:11.5px;line-height:1.55;z-index:20;display:none;white-space:nowrap;font-family:var(--font)}
+.charttip b{display:block;margin-bottom:3px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.charttip .r{display:flex;align-items:center;gap:7px}
+.charttip .r .sw{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+.charttip .r .num{margin-left:auto;font-weight:600;padding-left:12px}
+.tgl{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.tgl button{border:0;background:var(--panel);padding:5px 14px;font-size:11.5px;font-weight:700;color:var(--muted);cursor:pointer;font-family:var(--font)}
+.tgl button.on{background:var(--brand);color:#fff}
+.defbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.defbar .db{background:#f3f4f6;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--ink-2)}
+</style></head><body>
+<div id="c"></div><div class="legend" id="leg"></div>
+<script>
+function px(v){return Math.round(v*10)/10}
+const NS="http://www.w3.org/2000/svg";
+function lineChart(id, cfg){
+  const w=cfg.w||760,h=cfg.h||210,padL=34,padR=14,padT=14,padB=26;
+  const labels=cfg.labels, n=labels.length;
+  let vals=[]; cfg.series.forEach(s=>s.data.forEach(v=>{if(v!==null&&v!==undefined)vals.push(v);}));
+  const yMin=cfg.yMin!==undefined?cfg.yMin:Math.min(...vals), yMax=cfg.yMax!==undefined?cfg.yMax:Math.max(...vals);
+  const X=i=>padL+(i*(w-padL-padR)/(n-1||1));
+  const Y=v=>padT+(1-(v-yMin)/((yMax-yMin)||1))*(h-padT-padB);
+  let svg=`<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;overflow:visible" font-family="Fira Code,monospace">`;
+  [yMin,(yMin+yMax)/2,yMax].forEach(g=>{svg+=`<line x1="${padL}" y1="${px(Y(g))}" x2="${w-padR}" y2="${px(Y(g))}" stroke="#eef0f3"/><text x="${padL-6}" y="${px(Y(g)+3)}" font-size="9" fill="#9ca3af" text-anchor="end">${Math.round(g)}</text>`;});
+  if(yMin<0&&yMax>0){svg+=`<line x1="${padL}" y1="${px(Y(0))}" x2="${w-padR}" y2="${px(Y(0))}" stroke="#d1d5db" stroke-dasharray="2 2"/>`;}
+  labels.forEach((l,i)=>{svg+=`<text x="${px(X(i))}" y="${h-8}" font-size="9.5" fill="#9ca3af" text-anchor="middle">${l}</text>`;});
+  (cfg.markers||[]).forEach(m=>{const x=px(X(m.i));svg+=`<line x1="${x}" y1="${padT}" x2="${x}" y2="${h-padB}" stroke="#f0b8b8" stroke-dasharray="3 3"/><text x="${x}" y="${padT+8}" font-size="8.5" fill="#c0564f" text-anchor="middle">${m.text}</text>`;});
+  const endLbls=[];
+  cfg.series.forEach(s=>{
+    let d="",pts=[];
+    s.data.forEach((v,i)=>{if(v===null||v===undefined){return;}const X0=X(i),Y0=Y(v);pts.push([X0,Y0]);d+=(d?"L":"M")+px(X0)+" "+px(Y0)+" ";});
+    svg+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" ${s.dash?`stroke-dasharray="5 4"`:''}/>`;
+    pts.forEach((p,k)=>{svg+=`<circle cx="${px(p[0])}" cy="${px(p[1])}" r="${k===pts.length-1?3.4:2.2}" fill="${s.color}" stroke="#fff" stroke-width="1"/>`;});
+    if(pts.length&&!s.noLabel){const lp=pts[pts.length-1],li=s.data.length-1;endLbls.push({x:lp[0]-6,y:lp[1]-8,c:s.color,t:s.data[li]+(s.pct&&s.pct[li]!=null?" · "+s.pct[li]+"%":"")});}
+  });
+  /* stagger end-of-line value labels so they never overlap */
+  endLbls.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<endLbls.length;i++){if(endLbls[i].y<endLbls[i-1].y+11)endLbls[i].y=endLbls[i-1].y+11;}
+  let floor=h-padB-3;
+  for(let i=endLbls.length-1;i>=0;i--){if(endLbls[i].y>floor)endLbls[i].y=floor;floor=endLbls[i].y-11;}
+  endLbls.forEach(L=>{svg+=`<text x="${px(L.x)}" y="${px(L.y)}" font-size="10" font-weight="600" fill="${L.c}" text-anchor="end">${L.t}</text>`;});
+  svg+="</svg>";
+  const host=document.getElementById(id);
+  host.innerHTML=svg;
+  /* hover interactivity: nearest-month guide line + tooltip */
+  host.style.position="relative";
+  const svgEl=host.querySelector("svg");
+  const guide=document.createElementNS(NS,"line");
+  guide.setAttribute("stroke","#9ca3af");guide.setAttribute("stroke-width","1");guide.setAttribute("stroke-dasharray","2 3");
+  guide.setAttribute("y1",padT);guide.setAttribute("y2",h-padB);guide.style.display="none";
+  svgEl.appendChild(guide);
+  const tip=document.createElement("div");tip.className="charttip";host.appendChild(tip);
+  svgEl.addEventListener("mousemove",e=>{
+    const r=svgEl.getBoundingClientRect();
+    const fx=(e.clientX-r.left)/r.width*w;
+    let i=Math.round((fx-padL)/((w-padL-padR)/(n-1||1)));
+    i=Math.max(0,Math.min(n-1,i));
+    guide.setAttribute("x1",px(X(i)));guide.setAttribute("x2",px(X(i)));guide.style.display="";
+    let html=`<b>${labels[i]}</b>`;
+    cfg.series.forEach(s=>{const v=s.data[i];if(v===null||v===undefined)return;
+      html+=`<div class="r"><i class="sw" style="background:${s.color}"></i>${s.name||""}<span class="num">${typeof v==="number"?v.toLocaleString():v}${s.pct&&s.pct[i]!=null?` (${s.pct[i]}%)`:""}</span></div>`;});
+    tip.innerHTML=html;tip.style.display="block";
+    const hr=host.getBoundingClientRect();
+    let tx=e.clientX-hr.left+14, ty=e.clientY-hr.top-12;
+    if(tx+tip.offsetWidth>hr.width-4)tx=e.clientX-hr.left-tip.offsetWidth-14;
+    if(ty+tip.offsetHeight>hr.height-2)ty=hr.height-tip.offsetHeight-2;
+    tip.style.left=Math.max(0,tx)+"px";tip.style.top=Math.max(0,ty)+"px";
+  });
+  svgEl.addEventListener("mouseleave",()=>{tip.style.display="none";guide.style.display="none";});
+}
+function stackedBar(id, cfg){
+  const w=cfg.w||760,h=cfg.h||210,padL=30,padR=14,padT=14,padB=26;
+  const labels=cfg.labels,n=labels.length;
+  const totals=labels.map((_,i)=>cfg.segments.reduce((a,s)=>a+s.data[i],0));
+  const yMax=Math.max(...totals)*1.12;
+  const bw=Math.min(70,(w-padL-padR)/n*0.55);
+  const cx=i=>padL+(i+0.5)*(w-padL-padR)/n;
+  const Y=v=>padT+(1-v/yMax)*(h-padT-padB);
+  let svg=`<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block" font-family="Fira Code,monospace">`;
+  labels.forEach((l,i)=>{
+    let acc=0;const x=cx(i)-bw/2;
+    cfg.segments.forEach(s=>{const v=s.data[i];const y0=Y(acc+v),y1=Y(acc);svg+=`<rect x="${px(x)}" y="${px(y0)}" width="${px(bw)}" height="${px(y1-y0)}" fill="${s.color}"/>`;acc+=v;});
+    svg+=`<text x="${px(cx(i))}" y="${px(Y(acc)-5)}" font-size="10" font-weight="600" fill="#374151" text-anchor="middle">${acc}</text>`;
+    svg+=`<text x="${px(cx(i))}" y="${h-8}" font-size="9.5" fill="#9ca3af" text-anchor="middle">${l}</text>`;
+  });
+  svg+="</svg>";
+  const host=document.getElementById(id);
+  host.innerHTML=svg;
+  if(cfg.legendId){document.getElementById(cfg.legendId).innerHTML=cfg.segments.map(s=>`<span><i class="swatch" style="background:${s.color}"></i>${s.name}</span>`).join("");}
+  /* hover interactivity: per-bar tooltip with segment values + share of total */
+  host.style.position="relative";
+  const svgEl=host.querySelector("svg");
+  const tip=document.createElement("div");tip.className="charttip";host.appendChild(tip);
+  svgEl.addEventListener("mousemove",e=>{
+    const r=svgEl.getBoundingClientRect();
+    const fx=(e.clientX-r.left)/r.width*w;
+    let i=Math.floor((fx-padL)/((w-padL-padR)/n));
+    i=Math.max(0,Math.min(n-1,i));
+    let html=`<b>${labels[i]}</b>`;
+    [...cfg.segments].reverse().forEach(s=>{const v=s.data[i];
+      html+=`<div class="r"><i class="sw" style="background:${s.color}"></i>${s.name}<span class="num">${v.toLocaleString()} (${totals[i]?(v/totals[i]*100).toFixed(1):"0"}%)</span></div>`;});
+    html+=`<div class="r" style="border-top:1px solid #e5e7eb;margin-top:3px;padding-top:3px;font-weight:700">Total<span class="num">${totals[i].toLocaleString()}</span></div>`;
+    tip.innerHTML=html;tip.style.display="block";
+    const hr=host.getBoundingClientRect();
+    let tx=e.clientX-hr.left+14, ty=e.clientY-hr.top-12;
+    if(tx+tip.offsetWidth>hr.width-4)tx=e.clientX-hr.left-tip.offsetWidth-14;
+    if(ty+tip.offsetHeight>hr.height-2)ty=hr.height-tip.offsetHeight-2;
+    tip.style.left=Math.max(0,tx)+"px";tip.style.top=Math.max(0,ty)+"px";
+  });
+  svgEl.addEventListener("mouseleave",()=>{tip.style.display="none";});
+}
+stackedBar("c",{labels:["Apr","May","Jun"],legendId:"leg",segments:[
+ {name:"Automate",color:"#2563eb",data:[742,646,767]},
+ {name:"App Automate",color:"#dd7529",data:[695,531,630]}]});
+</script></body></html>
